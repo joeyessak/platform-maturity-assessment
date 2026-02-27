@@ -61,7 +61,7 @@ export async function analyzeAssessment(responses) {
 Analyze these responses and provide a detailed maturity assessment.`;
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: 'gpt-4-turbo',
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
