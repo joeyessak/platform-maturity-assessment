@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import {
   Cog,
   Shield,
   Building2,
   Rocket,
   Share2,
-  RotateCcw
+  RotateCcw,
+  Download
 } from 'lucide-react';
 
 const layerLabels = {
@@ -239,6 +242,9 @@ function OverallScoreRing({ score }) {
 }
 
 export default function Report({ assessment, onRestart }) {
+  const reportRef = useRef(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
   const handleShare = () => {
     const text = `Platform Maturity Assessment Results:\n\nOverall Score: ${assessment.overallScore}/5\n\n${assessment.executiveSummary}\n\nPowered by Platform Maturity Assessment Tool`;
 
@@ -253,70 +259,110 @@ export default function Report({ assessment, onRestart }) {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return;
+
+    setIsGeneratingPDF(true);
+
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#F3F4F6',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save('platform-maturity-assessment.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-          Platform Maturity Assessment Report
-        </h1>
+      <div ref={reportRef} className="space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            Platform Maturity Assessment Report
+          </h1>
 
-        <OverallScoreRing score={assessment.overallScore} />
+          <OverallScoreRing score={assessment.overallScore} />
 
-        {/* Executive Summary */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h2 className="font-semibold text-gray-900 mb-2">Executive Summary</h2>
-          <p className="text-gray-700">{assessment.executiveSummary}</p>
+          {/* Executive Summary */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h2 className="font-semibold text-gray-900 mb-2">Executive Summary</h2>
+            <p className="text-gray-700">{assessment.executiveSummary}</p>
+          </div>
         </div>
-      </div>
 
-      {/* Layer Scores - Ring Charts */}
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Maturity by Layer</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Object.entries(assessment.layerScores).map(([key, score], index) => (
-            <RingProgress
-              key={key}
-              layerKey={key}
-              score={score}
-              label={layerLabels[key]}
-              config={layerConfig[key]}
-              delay={300 + index * 200}
-            />
-          ))}
+        {/* Layer Scores - Ring Charts */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Maturity by Layer</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.entries(assessment.layerScores).map(([key, score], index) => (
+              <RingProgress
+                key={key}
+                layerKey={key}
+                score={score}
+                label={layerLabels[key]}
+                config={layerConfig[key]}
+                delay={300 + index * 200}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Recommendations */}
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">
-          Top Recommendations
-        </h2>
-        <div className="space-y-4">
-          {assessment.recommendations.map((rec, index) => (
-            <div
-              key={index}
-              className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-md transition-all"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold flex items-center justify-center shadow-md">
-                  {index + 1}
-                </span>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{rec.title}</h3>
-                  <p className="text-gray-600 mt-1">{rec.description}</p>
-                  <p className="text-sm text-indigo-600 mt-2 font-medium">
-                    Impact: {rec.impact}
-                  </p>
+        {/* Recommendations */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
+            Top Recommendations
+          </h2>
+          <div className="space-y-4">
+            {assessment.recommendations.map((rec, index) => (
+              <div
+                key={index}
+                className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold flex items-center justify-center shadow-md">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{rec.title}</h3>
+                    <p className="text-gray-600 mt-1">{rec.description}</p>
+                    <p className="text-sm text-indigo-600 mt-2 font-medium">
+                      Impact: {rec.impact}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-center gap-4 pb-8">
+      <div className="flex flex-wrap justify-center gap-4 pb-8">
         <button
           onClick={onRestart}
           className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
@@ -325,8 +371,16 @@ export default function Report({ assessment, onRestart }) {
           Start New Assessment
         </button>
         <button
+          onClick={handleDownloadPDF}
+          disabled={isGeneratingPDF}
+          className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50"
+        >
+          <Download size={18} />
+          {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+        </button>
+        <button
           onClick={handleShare}
-          className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
+          className="px-6 py-2.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors font-medium flex items-center gap-2"
         >
           <Share2 size={18} />
           Share Results
