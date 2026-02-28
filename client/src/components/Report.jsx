@@ -873,36 +873,36 @@ export default function Report({ assessment, onRestart }) {
       });
 
       // Right column: Key metrics and statement
-      const rightX = MARGIN.left + COL.width + COL.gutter;
-      let rightY = y;
+      const roadmapRightX = MARGIN.left + COL.width + COL.gutter;
+      let roadmapY = y;
 
       // Primary Investment Domain
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('PRIMARY INVESTMENT DOMAIN', rightX, rightY);
-      rightY += SPACE.subsection;
+      pdf.text('PRIMARY INVESTMENT DOMAIN', roadmapRightX, roadmapY);
+      roadmapY += SPACE.subsection;
 
       pdf.setFontSize(FONT.body);
       pdf.setTextColor(15, 23, 42);
-      pdf.text(lowestLayer.label, rightX, rightY);
-      rightY += SPACE.section;
+      pdf.text(lowestLayer.label, roadmapRightX, roadmapY);
+      roadmapY += SPACE.section;
 
       // Transformation Window
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('TRANSFORMATION WINDOW', rightX, rightY);
-      rightY += SPACE.subsection;
+      pdf.text('TRANSFORMATION WINDOW', roadmapRightX, roadmapY);
+      roadmapY += SPACE.subsection;
 
       pdf.setFontSize(FONT.body);
       pdf.setTextColor(15, 23, 42);
-      pdf.text('6-12 months', rightX, rightY);
-      rightY += SPACE.section;
+      pdf.text('6-12 months', roadmapRightX, roadmapY);
+      roadmapY += SPACE.section;
 
       // Key Outcome Metrics
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('KEY OUTCOME METRICS', rightX, rightY);
-      rightY += SPACE.subsection;
+      pdf.text('KEY OUTCOME METRICS', roadmapRightX, roadmapY);
+      roadmapY += SPACE.subsection;
 
       pdf.setFontSize(FONT.small);
       pdf.setTextColor(71, 85, 105);
@@ -913,16 +913,16 @@ export default function Report({ assessment, onRestart }) {
         'Governance compliance rate'
       ];
       metrics.forEach(metric => {
-        pdf.text(`•  ${metric}`, rightX + 2, rightY);
-        rightY += SPACE.paragraph + 1;
+        pdf.text(`•  ${metric}`, roadmapRightX + 2, roadmapY);
+        roadmapY += SPACE.paragraph + 1;
       });
-      rightY += SPACE.section;
+      roadmapY += SPACE.section;
 
       // Operating Model Statement (integrated, not isolated)
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('OPERATING MODEL PERSPECTIVE', rightX, rightY);
-      rightY += SPACE.subsection;
+      pdf.text('OPERATING MODEL PERSPECTIVE', roadmapRightX, roadmapY);
+      roadmapY += SPACE.subsection;
 
       pdf.setFontSize(FONT.small);
       pdf.setTextColor(51, 65, 85);
@@ -930,7 +930,7 @@ export default function Report({ assessment, onRestart }) {
         'Platform maturity is not a tooling initiative. It is an operating model transformation that enables sustainable enterprise scale.',
         COL.width - 5
       );
-      pdf.text(statementLines, rightX, rightY);
+      pdf.text(statementLines, roadmapRightX, roadmapY);
 
       addFooter();
 
