@@ -17,29 +17,25 @@ const layerLabels = {
   productExecution: 'Product & Client Execution',
 };
 
-// Using chart colors from the design system
+// Using chart colors from the design system (CSS variables)
 const layerConfig = {
   platformServices: {
-    color: 'oklch(0.81 0.17 75.35)', // chart-1 (gold)
-    gradient: ['oklch(0.81 0.17 75.35)', 'oklch(0.71 0.17 75.35)'],
+    colorVar: '--chart-1',
     Icon: Cog,
     description: 'CI/CD, Infrastructure as Code',
   },
   cloudGovernance: {
-    color: 'oklch(0.58 0.21 260.84)', // chart-2 (blue)
-    gradient: ['oklch(0.58 0.21 260.84)', 'oklch(0.48 0.21 260.84)'],
+    colorVar: '--chart-2',
     Icon: Shield,
     description: 'Cost management, Access controls',
   },
   portfolioArchitecture: {
-    color: 'oklch(0.72 0 0)', // ring color (light gray)
-    gradient: ['oklch(0.72 0 0)', 'oklch(0.56 0 0)'],
+    colorVar: '--chart-3',
     Icon: Building2,
     description: 'Service standardization, Tech choices',
   },
   productExecution: {
-    color: 'oklch(0.92 0 0)', // chart-5 (near white)
-    gradient: ['oklch(0.92 0 0)', 'oklch(0.72 0 0)'],
+    colorVar: '--chart-4',
     Icon: Rocket,
     description: 'Delivery visibility, AI readiness',
   },
@@ -54,8 +50,8 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
   const circumference = radius * 2 * Math.PI;
   const percentage = (animatedScore / 5) * 100;
   const offset = circumference - (percentage / 100) * circumference;
-  const gradientId = `gradient-${layerKey}`;
   const Icon = config.Icon;
+  const colorStyle = `var(${config.colorVar})`;
 
   useEffect(() => {
     const visibleTimer = setTimeout(() => {
@@ -87,12 +83,6 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
     >
       <div className="relative">
         <svg width={size} height={size} className="transform -rotate-90">
-          <defs>
-            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={config.gradient[0]} />
-              <stop offset="100%" stopColor={config.gradient[1]} />
-            </linearGradient>
-          </defs>
           {/* Background circle */}
           <circle
             cx={size / 2}
@@ -107,7 +97,7 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={`url(#${gradientId})`}
+            stroke={colorStyle}
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
@@ -122,12 +112,12 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <Icon
             size={24}
-            style={{ color: config.color }}
+            style={{ color: colorStyle }}
             strokeWidth={1.5}
           />
           <span
             className="text-xl font-bold mt-1"
-            style={{ color: config.color }}
+            style={{ color: colorStyle }}
           >
             {animatedScore.toFixed(1)}
           </span>
@@ -144,7 +134,7 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
           className="text-xs font-medium mt-2 px-3 py-1 rounded-full inline-block"
           style={{
             backgroundColor: 'var(--accent)',
-            color: config.color
+            color: colorStyle
           }}
         >
           {getScoreLabel(score)}
@@ -190,19 +180,13 @@ function OverallScoreRing({ score }) {
   return (
     <div
       className="flex flex-col items-center p-6 rounded-xl"
-      style={{ backgroundColor: 'var(--popover)' }}
+      style={{ backgroundColor: 'var(--muted)' }}
     >
       <div className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>
         Overall Maturity Score
       </div>
       <div className="relative">
         <svg width={size} height={size} className="transform -rotate-90">
-          <defs>
-            <linearGradient id="overall-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="oklch(0.81 0.17 75.35)" />
-              <stop offset="100%" stopColor="oklch(0.58 0.21 260.84)" />
-            </linearGradient>
-          </defs>
           {/* Background circle */}
           <circle
             cx={size / 2}
@@ -217,7 +201,7 @@ function OverallScoreRing({ score }) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="url(#overall-gradient)"
+            stroke="var(--ring)"
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
@@ -230,7 +214,7 @@ function OverallScoreRing({ score }) {
         </svg>
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold" style={{ color: 'var(--primary)' }}>
+          <span className="text-4xl font-bold" style={{ color: 'var(--ring)' }}>
             {animatedScore.toFixed(1)}
           </span>
           <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>out of 5</span>
@@ -493,7 +477,7 @@ export default function Report({ assessment, onRestart }) {
                   </p>
                   <p
                     className="text-sm mt-2 font-medium"
-                    style={{ color: 'oklch(0.81 0.17 75.35)' }}
+                    style={{ color: 'var(--ring)' }}
                   >
                     Impact: {rec.impact}
                   </p>
