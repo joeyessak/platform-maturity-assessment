@@ -8,48 +8,55 @@ const maturityLevels = [
 
 export default function Question({ question, layer, value, onChange }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <span
-          className="inline-block px-3 py-1 text-xs font-medium rounded-full mb-2"
-          style={{
-            backgroundColor: 'var(--accent)',
-            color: 'var(--accent-foreground)'
-          }}
+          className="text-section-label inline-block mb-3"
+          style={{ color: 'var(--muted-foreground)' }}
         >
           {layer}
         </span>
-        <h2 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
+        <h2
+          className="text-h2"
+          style={{ color: 'var(--foreground)' }}
+        >
           {question}
         </h2>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {maturityLevels.map((level) => (
           <button
             key={level.value}
             onClick={() => onChange(level.value)}
-            className="w-full text-left p-4 rounded-lg border-2 transition-all"
+            className="w-full text-left p-4 rounded-xl border transition-all duration-200"
             style={{
               backgroundColor: value === level.value ? 'var(--accent)' : 'transparent',
-              borderColor: value === level.value ? 'var(--primary)' : 'var(--border)',
+              borderColor: value === level.value ? 'var(--foreground)' : 'var(--border)',
+              borderWidth: value === level.value ? '2px' : '1px',
             }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <span
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: value === level.value ? 'var(--primary)' : 'var(--muted)',
-                  color: value === level.value ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                  backgroundColor: value === level.value ? 'var(--foreground)' : 'var(--muted)',
+                  color: value === level.value ? 'var(--background)' : 'var(--muted-foreground)',
                 }}
               >
                 {level.value}
               </span>
               <div>
-                <div className="font-medium" style={{ color: 'var(--foreground)' }}>
+                <div
+                  className="font-semibold text-base"
+                  style={{ color: 'var(--foreground)' }}
+                >
                   {level.label}
                 </div>
-                <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                <div
+                  className="text-sm mt-0.5"
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
                   {level.description}
                 </div>
               </div>

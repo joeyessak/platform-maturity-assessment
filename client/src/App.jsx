@@ -17,16 +17,25 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen py-12 px-4" style={{ backgroundColor: 'var(--background)' }}>
+    <div
+      className="min-h-screen py-16 px-4"
+      style={{ backgroundColor: 'var(--background)' }}
+    >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+        <div className="text-center mb-16">
+          <h1
+            className="text-h1 mb-4"
+            style={{ color: 'var(--foreground)' }}
+          >
             Platform Maturity Assessment
           </h1>
-          <p style={{ color: 'var(--muted-foreground)' }} className="max-w-xl mx-auto">
+          <p
+            className="text-body max-w-2xl mx-auto"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
             Evaluate your organization's platform engineering maturity across key
-            dimensions and receive AI-powered recommendations for improvement.
+            dimensions and receive AI-powered strategic recommendations for improvement.
           </p>
         </div>
 

@@ -10,6 +10,7 @@ import {
   Download
 } from 'lucide-react';
 
+// Layer configuration
 const layerLabels = {
   platformServices: 'Platform Services',
   cloudGovernance: 'Cloud Governance',
@@ -17,279 +18,213 @@ const layerLabels = {
   productExecution: 'Product & Client Execution',
 };
 
-// Layer icons and descriptions
 const layerConfig = {
   platformServices: {
     Icon: Cog,
     description: 'CI/CD, Infrastructure as Code',
+    commercialImpact: 'Delivery consistency and operational efficiency',
   },
   cloudGovernance: {
     Icon: Shield,
     description: 'Cost management, Access controls',
+    commercialImpact: 'Cost optimization and compliance posture',
   },
   portfolioArchitecture: {
     Icon: Building2,
     description: 'Service standardization, Tech choices',
+    commercialImpact: 'Technical debt and scalability readiness',
   },
   productExecution: {
     Icon: Rocket,
     description: 'Delivery visibility, AI readiness',
+    commercialImpact: 'Market responsiveness and innovation capacity',
   },
 };
 
-// Score-based color gradient: red (suffering) → yellow (surviving) → green (thriving)
-const scoreColors = [
-  { score: 1.0, color: [220, 38, 38] },   // Deep red
-  { score: 1.5, color: [239, 68, 68] },   // Red
-  { score: 2.0, color: [248, 113, 113] }, // Light red
-  { score: 2.5, color: [251, 146, 60] },  // Orange
-  { score: 3.0, color: [251, 191, 36] },  // Yellow-orange
-  { score: 3.5, color: [250, 204, 21] },  // Yellow
-  { score: 4.0, color: [163, 230, 53] },  // Lime
-  { score: 4.5, color: [74, 222, 128] },  // Light green
-  { score: 5.0, color: [34, 197, 94] },   // Green
-];
+// Maturity gradient colors
+const maturityColors = {
+  adhoc: { start: '#DC2626', end: '#EF4444', text: '#DC2626' },
+  basic: { start: '#FB923C', end: '#FBBF24', text: '#EA580C' },
+  developing: { start: '#FBBF24', end: '#FACC15', text: '#CA8A04' },
+  mature: { start: '#4ADE80', end: '#22C55E', text: '#16A34A' },
+  optimized: { start: '#22C55E', end: '#16A34A', text: '#15803D' },
+};
 
-function getScoreColor(score) {
-  // Clamp score between 1 and 5
-  const clampedScore = Math.max(1, Math.min(5, score));
-
-  // Find the two colors to interpolate between
-  let lower = scoreColors[0];
-  let upper = scoreColors[scoreColors.length - 1];
-
-  for (let i = 0; i < scoreColors.length - 1; i++) {
-    if (clampedScore >= scoreColors[i].score && clampedScore <= scoreColors[i + 1].score) {
-      lower = scoreColors[i];
-      upper = scoreColors[i + 1];
-      break;
-    }
-  }
-
-  // Calculate interpolation factor
-  const range = upper.score - lower.score;
-  const factor = range === 0 ? 0 : (clampedScore - lower.score) / range;
-
-  // Interpolate RGB values
-  const r = Math.round(lower.color[0] + (upper.color[0] - lower.color[0]) * factor);
-  const g = Math.round(lower.color[1] + (upper.color[1] - lower.color[1]) * factor);
-  const b = Math.round(lower.color[2] + (upper.color[2] - lower.color[2]) * factor);
-
-  return `rgb(${r}, ${g}, ${b})`;
+function getMaturityLevel(score) {
+  if (score >= 4.5) return 'optimized';
+  if (score >= 3.5) return 'mature';
+  if (score >= 2.5) return 'developing';
+  if (score >= 1.5) return 'basic';
+  return 'adhoc';
 }
 
+function getMaturityLabel(score) {
+  if (score >= 4.5) return 'Optimized';
+  if (score >= 3.5) return 'Mature';
+  if (score >= 2.5) return 'Developing';
+  if (score >= 1.5) return 'Basic';
+  return 'Ad-hoc';
+}
+
+function getMaturityColors(score) {
+  return maturityColors[getMaturityLevel(score)];
+}
+
+// Ring Progress Component with Gradient
 function RingProgress({ score, layerKey, label, config, delay = 0 }) {
   const [animatedScore, setAnimatedScore] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-  const size = 120;
-  const strokeWidth = 10;
+  const size = 140;
+  const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const percentage = (animatedScore / 5) * 100;
   const offset = circumference - (percentage / 100) * circumference;
   const Icon = config.Icon;
-  const scoreColor = getScoreColor(animatedScore || 1);
+  const colors = getMaturityColors(score);
+  const gradientId = `gradient-${layerKey}`;
 
   useEffect(() => {
-    const visibleTimer = setTimeout(() => {
-      setIsVisible(true);
-    }, delay);
-
-    const scoreTimer = setTimeout(() => {
-      setAnimatedScore(score);
-    }, delay + 100);
-
+    const visibleTimer = setTimeout(() => setIsVisible(true), delay);
+    const scoreTimer = setTimeout(() => setAnimatedScore(score), delay + 100);
     return () => {
       clearTimeout(visibleTimer);
       clearTimeout(scoreTimer);
     };
   }, [score, delay]);
 
-  const getScoreLabel = (s) => {
-    if (s >= 4.5) return 'Optimized';
-    if (s >= 3.5) return 'Mature';
-    if (s >= 2.5) return 'Developing';
-    if (s >= 1.5) return 'Basic';
-    return 'Ad-hoc';
-  };
-
-  return (
-    <div
-      className="flex flex-col items-center p-4 rounded-xl transition-colors"
-      style={{ backgroundColor: 'var(--muted)' }}
-    >
-      <div className="relative">
-        <svg width={size} height={size} className="transform -rotate-90">
-          {/* Background circle */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="var(--border)"
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
-          {/* Progress circle */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={scoreColor}
-            strokeWidth={strokeWidth}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={isVisible ? offset : circumference}
-            style={{
-              transition: 'stroke-dashoffset 1s ease-out, stroke 0.5s ease-out',
-            }}
-          />
-        </svg>
-        {/* Center content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <Icon
-            size={24}
-            style={{ color: scoreColor }}
-            strokeWidth={1.5}
-          />
-          <span
-            className="text-xl font-bold mt-1"
-            style={{ color: scoreColor }}
-          >
-            {animatedScore.toFixed(1)}
-          </span>
-        </div>
-      </div>
-      <div className="mt-3 text-center">
-        <div className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
-          {label}
-        </div>
-        <div className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-          {config.description}
-        </div>
-        <div
-          className="text-xs font-medium mt-2 px-3 py-1 rounded-full inline-block"
-          style={{
-            backgroundColor: scoreColor,
-            color: score >= 3.5 ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
-          }}
-        >
-          {getScoreLabel(score)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OverallScoreRing({ score }) {
-  const [animatedScore, setAnimatedScore] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const size = 180;
-  const strokeWidth = 14;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const percentage = (animatedScore / 5) * 100;
-  const offset = circumference - (percentage / 100) * circumference;
-  const scoreColor = getScoreColor(animatedScore || 1);
-
-  useEffect(() => {
-    const visibleTimer = setTimeout(() => {
-      setIsVisible(true);
-    }, 100);
-
-    const scoreTimer = setTimeout(() => {
-      setAnimatedScore(score);
-    }, 200);
-
-    return () => {
-      clearTimeout(visibleTimer);
-      clearTimeout(scoreTimer);
-    };
-  }, [score]);
-
-  const getScoreLabelText = (s) => {
-    if (s >= 4.5) return 'Optimized';
-    if (s >= 3.5) return 'Mature';
-    if (s >= 2.5) return 'Developing';
-    if (s >= 1.5) return 'Basic';
-    return 'Ad-hoc';
-  };
-
   return (
     <div
       className="flex flex-col items-center p-6 rounded-xl"
       style={{ backgroundColor: 'var(--muted)' }}
     >
-      <div className="text-sm font-medium mb-4" style={{ color: 'var(--muted-foreground)' }}>
-        Overall Maturity Score
-      </div>
       <div className="relative">
         <svg width={size} height={size} className="transform -rotate-90">
-          {/* Background circle */}
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={colors.start} />
+              <stop offset="100%" stopColor={colors.end} />
+            </linearGradient>
+          </defs>
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="var(--border)"
+            stroke="var(--ring-track)"
             strokeWidth={strokeWidth}
             fill="none"
           />
-          {/* Progress circle */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={scoreColor}
+            stroke={`url(#${gradientId})`}
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={isVisible ? offset : circumference}
-            style={{
-              transition: 'stroke-dashoffset 1.2s ease-out, stroke 0.5s ease-out',
-            }}
+            style={{ transition: 'stroke-dashoffset 1s ease-out' }}
           />
         </svg>
-        {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold" style={{ color: scoreColor }}>
+          <Icon size={24} style={{ color: colors.text }} strokeWidth={1.5} />
+          <span className="text-2xl font-bold mt-2" style={{ color: colors.text }}>
             {animatedScore.toFixed(1)}
           </span>
-          <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>out of 5</span>
         </div>
       </div>
-      <div
-        className="mt-4 px-4 py-1.5 rounded-full text-sm font-semibold"
-        style={{
-          backgroundColor: scoreColor,
-          color: score >= 3.5 ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
-        }}
-      >
-        {getScoreLabelText(score)}
+      <div className="mt-4 text-center">
+        <div className="font-semibold" style={{ color: 'var(--foreground)' }}>{label}</div>
+        <div className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+          {config.description}
+        </div>
+        <div
+          className="text-xs font-semibold mt-3 px-4 py-1.5 rounded-full inline-block"
+          style={{ backgroundColor: colors.text, color: '#FFFFFF' }}
+        >
+          {getMaturityLabel(score)}
+        </div>
       </div>
     </div>
   );
 }
 
-function getScoreLabel(s) {
-  if (s >= 4.5) return 'Optimized';
-  if (s >= 3.5) return 'Mature';
-  if (s >= 2.5) return 'Developing';
-  if (s >= 1.5) return 'Basic';
-  return 'Ad-hoc';
+// Overall Score Ring
+function OverallScoreRing({ score }) {
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const size = 220;
+  const strokeWidth = 16;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const percentage = (animatedScore / 5) * 100;
+  const offset = circumference - (percentage / 100) * circumference;
+  const colors = getMaturityColors(score);
+
+  useEffect(() => {
+    setTimeout(() => setIsVisible(true), 100);
+    setTimeout(() => setAnimatedScore(score), 200);
+  }, [score]);
+
+  return (
+    <div className="flex flex-col items-center p-8 rounded-xl" style={{ backgroundColor: 'var(--muted)' }}>
+      <div className="text-section-label mb-6">Overall Maturity Score</div>
+      <div className="relative">
+        <svg width={size} height={size} className="transform -rotate-90">
+          <defs>
+            <linearGradient id="overall-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={colors.start} />
+              <stop offset="100%" stopColor={colors.end} />
+            </linearGradient>
+          </defs>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="var(--ring-track)"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="url(#overall-gradient)"
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={isVisible ? offset : circumference}
+            style={{ transition: 'stroke-dashoffset 1.2s ease-out' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-score" style={{ color: colors.text }}>
+            {animatedScore.toFixed(1)}
+          </span>
+          <span className="text-base mt-4" style={{ color: 'var(--muted-foreground)' }}>
+            out of 5
+          </span>
+        </div>
+      </div>
+      <div
+        className="mt-6 px-6 py-2 rounded-full text-sm font-semibold"
+        style={{ backgroundColor: colors.text, color: '#FFFFFF' }}
+      >
+        {getMaturityLabel(score)}
+      </div>
+    </div>
+  );
 }
 
 export default function Report({ assessment, onRestart }) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handleShare = () => {
-    const text = `Platform Maturity Assessment Results:\n\nOverall Score: ${assessment.overallScore}/5\n\n${assessment.executiveSummary}\n\nPowered by Platform Maturity Assessment Tool`;
-
+    const text = `Platform Maturity Assessment Results:\n\nOverall Score: ${assessment.overallScore}/5 - ${getMaturityLabel(assessment.overallScore)}\n\n${assessment.executiveSummary}\n\nPrepared by Joey Essak`;
     if (navigator.share) {
-      navigator.share({
-        title: 'Platform Maturity Assessment',
-        text: text,
-      });
+      navigator.share({ title: 'Platform Maturity Assessment', text });
     } else {
       navigator.clipboard.writeText(text);
       alert('Summary copied to clipboard!');
@@ -300,120 +235,234 @@ export default function Report({ assessment, onRestart }) {
     setIsGeneratingPDF(true);
 
     try {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageWidth = pdf.internal.pageSize.getWidth();
-      let y = 20;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 25;
+      const contentWidth = pageWidth - margin * 2;
 
-      // Title
-      pdf.setFontSize(22);
-      pdf.setTextColor(31, 41, 55);
-      pdf.text('Platform Maturity Assessment Report', pageWidth / 2, y, { align: 'center' });
+      // Helper functions
+      const addFooter = (pageNum) => {
+        pdf.setFontSize(9);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text('Prepared by Joey Essak', margin, pageHeight - 15);
+        pdf.text('joey.essak@gmail.com | linkedin.com/in/joeyessak', pageWidth - margin, pageHeight - 15, { align: 'right' });
+      };
+
+      const drawGradientBar = (x, y, width, height, colors) => {
+        pdf.setFillColor(...hexToRgb(colors.start));
+        pdf.roundedRect(x, y, width, height, 2, 2, 'F');
+      };
+
+      const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0, 0, 0];
+      };
+
+      // ===== PAGE 1: COVER PAGE =====
+      let y = 80;
+      pdf.setFontSize(32);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('Platform Maturity', pageWidth / 2, y, { align: 'center' });
+      y += 14;
+      pdf.text('Executive Review', pageWidth / 2, y, { align: 'center' });
+
+      y += 30;
+      pdf.setFontSize(14);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('Platform Engineering & AI Readiness Assessment', pageWidth / 2, y, { align: 'center' });
+
+      y += 60;
+      pdf.setFontSize(11);
+      pdf.setTextColor(71, 85, 105);
+      pdf.text('Prepared by', pageWidth / 2, y, { align: 'center' });
+      y += 12;
+      pdf.setFontSize(16);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('Joey Essak', pageWidth / 2, y, { align: 'center' });
+      y += 8;
+      pdf.setFontSize(11);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('Platform & AI Strategy', pageWidth / 2, y, { align: 'center' });
+
+      y += 20;
+      pdf.setFontSize(10);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('joey.essak@gmail.com', pageWidth / 2, y, { align: 'center' });
+      y += 6;
+      pdf.text('linkedin.com/in/joeyessak', pageWidth / 2, y, { align: 'center' });
+
+      // ===== PAGE 2: EXECUTIVE SNAPSHOT =====
+      pdf.addPage();
+      y = margin;
+
+      pdf.setFontSize(24);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('Executive Snapshot', margin, y);
+      y += 20;
+
+      // Overall Score Section
+      const overallColors = getMaturityColors(assessment.overallScore);
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('OVERALL MATURITY SCORE', margin, y);
       y += 15;
 
-      // Overall Score
+      pdf.setFontSize(48);
+      pdf.setTextColor(...hexToRgb(overallColors.text));
+      pdf.text(assessment.overallScore.toFixed(1), margin, y);
+
       pdf.setFontSize(14);
-      pdf.setTextColor(107, 114, 128);
-      pdf.text('Overall Maturity Score', pageWidth / 2, y, { align: 'center' });
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('out of 5', margin + 45, y - 5);
       y += 10;
 
-      pdf.setFontSize(36);
-      pdf.setTextColor(79, 70, 229);
-      pdf.text(`${assessment.overallScore.toFixed(1)}`, pageWidth / 2, y, { align: 'center' });
-      y += 8;
-
-      pdf.setFontSize(12);
-      pdf.setTextColor(107, 114, 128);
-      pdf.text(`out of 5 - ${getScoreLabel(assessment.overallScore)}`, pageWidth / 2, y, { align: 'center' });
-      y += 15;
+      // Status badge
+      pdf.setFillColor(...hexToRgb(overallColors.text));
+      pdf.roundedRect(margin, y, 35, 8, 4, 4, 'F');
+      pdf.setFontSize(9);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(getMaturityLabel(assessment.overallScore), margin + 17.5, y + 5.5, { align: 'center' });
+      y += 25;
 
       // Executive Summary
-      pdf.setFontSize(14);
-      pdf.setTextColor(31, 41, 55);
-      pdf.text('Executive Summary', 20, y);
-      y += 8;
-
-      pdf.setFontSize(10);
-      pdf.setTextColor(55, 65, 81);
-      const summaryLines = pdf.splitTextToSize(assessment.executiveSummary, pageWidth - 40);
-      pdf.text(summaryLines, 20, y);
-      y += summaryLines.length * 5 + 10;
-
-      // Layer Scores
-      pdf.setFontSize(14);
-      pdf.setTextColor(31, 41, 55);
-      pdf.text('Maturity by Layer', 20, y);
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('EXECUTIVE SUMMARY', margin, y);
       y += 10;
 
+      pdf.setFontSize(11);
+      pdf.setTextColor(51, 65, 85);
+      const summaryLines = pdf.splitTextToSize(assessment.executiveSummary, contentWidth);
+      pdf.text(summaryLines, margin, y);
+      y += summaryLines.length * 6 + 20;
+
+      // Strategic Insights
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('STRATEGIC INSIGHTS', margin, y);
+      y += 12;
+
+      // Find highest and lowest scores
+      const scores = Object.entries(assessment.layerScores);
+      const highest = scores.reduce((a, b) => a[1] > b[1] ? a : b);
+      const lowest = scores.reduce((a, b) => a[1] < b[1] ? a : b);
+
+      const insights = [
+        { label: 'Primary Strength', value: layerLabels[highest[0]], score: highest[1] },
+        { label: 'Primary Risk', value: layerLabels[lowest[0]], score: lowest[1] },
+        { label: 'Strategic Focus', value: 'AI commercialization and platform modernization', score: null },
+      ];
+
+      insights.forEach((insight) => {
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(insight.label, margin, y);
+        y += 6;
+        pdf.setFontSize(12);
+        pdf.setTextColor(15, 23, 42);
+        const text = insight.score ? `${insight.value} (${insight.score.toFixed(1)})` : insight.value;
+        pdf.text(text, margin, y);
+        y += 12;
+      });
+
+      addFooter(2);
+
+      // ===== PAGE 3: LAYER BREAKDOWN =====
+      pdf.addPage();
+      y = margin;
+
+      pdf.setFontSize(24);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('Layer Breakdown', margin, y);
+      y += 25;
+
       const layers = [
-        { key: 'platformServices', label: 'Platform Services', color: [59, 130, 246] },
-        { key: 'cloudGovernance', label: 'Cloud Governance', color: [16, 185, 129] },
-        { key: 'portfolioArchitecture', label: 'Portfolio Architecture', color: [139, 92, 246] },
-        { key: 'productExecution', label: 'Product & Client Execution', color: [245, 158, 11] },
+        { key: 'platformServices', label: 'Platform Services' },
+        { key: 'cloudGovernance', label: 'Cloud Governance' },
+        { key: 'portfolioArchitecture', label: 'Portfolio Architecture' },
+        { key: 'productExecution', label: 'Product & Client Execution' },
       ];
 
       layers.forEach((layer) => {
         const score = assessment.layerScores[layer.key];
-        const barWidth = (score / 5) * 100;
+        const colors = getMaturityColors(score);
+        const config = layerConfig[layer.key];
 
-        pdf.setFontSize(11);
-        pdf.setTextColor(31, 41, 55);
-        pdf.text(layer.label, 20, y);
-        pdf.text(`${score.toFixed(1)}/5 - ${getScoreLabel(score)}`, pageWidth - 20, y, { align: 'right' });
-        y += 5;
+        // Layer header with score
+        pdf.setFontSize(14);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(layer.label, margin, y);
 
-        // Background bar
-        pdf.setFillColor(229, 231, 235);
-        pdf.roundedRect(20, y, 100, 4, 2, 2, 'F');
+        pdf.setFontSize(14);
+        pdf.setTextColor(...hexToRgb(colors.text));
+        pdf.text(`${score.toFixed(1)} — ${getMaturityLabel(score)}`, pageWidth - margin, y, { align: 'right' });
+        y += 8;
 
         // Progress bar
-        pdf.setFillColor(...layer.color);
-        pdf.roundedRect(20, y, barWidth, 4, 2, 2, 'F');
-        y += 12;
+        pdf.setFillColor(229, 231, 235);
+        pdf.roundedRect(margin, y, contentWidth, 6, 3, 3, 'F');
+
+        const barWidth = (score / 5) * contentWidth;
+        drawGradientBar(margin, y, barWidth, 6, colors);
+        y += 14;
+
+        // Commercial impact
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(`Commercial Impact: ${config.commercialImpact}`, margin, y);
+        y += 20;
       });
 
-      y += 5;
+      addFooter(3);
 
-      // Recommendations
-      pdf.setFontSize(14);
-      pdf.setTextColor(31, 41, 55);
-      pdf.text('Top Recommendations', 20, y);
-      y += 10;
+      // ===== PAGE 4: STRATEGIC RECOMMENDATIONS =====
+      pdf.addPage();
+      y = margin;
+
+      pdf.setFontSize(24);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('Strategic Recommendations', margin, y);
+      y += 25;
 
       assessment.recommendations.forEach((rec, index) => {
-        // Check if we need a new page
-        if (y > 250) {
+        if (y > pageHeight - 60) {
           pdf.addPage();
-          y = 20;
+          y = margin;
+          addFooter(pdf.internal.getNumberOfPages());
         }
 
-        pdf.setFontSize(11);
-        pdf.setTextColor(79, 70, 229);
-        pdf.text(`${index + 1}. ${rec.title}`, 20, y);
-        y += 6;
-
+        // Recommendation number
+        pdf.setFillColor(15, 23, 42);
+        pdf.circle(margin + 4, y + 4, 4, 'F');
         pdf.setFontSize(10);
-        pdf.setTextColor(75, 85, 99);
-        const descLines = pdf.splitTextToSize(rec.description, pageWidth - 45);
-        pdf.text(descLines, 25, y);
-        y += descLines.length * 4 + 3;
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(String(index + 1), margin + 4, y + 5.5, { align: 'center' });
 
-        pdf.setTextColor(79, 70, 229);
-        const impactLines = pdf.splitTextToSize(`Impact: ${rec.impact}`, pageWidth - 45);
-        pdf.text(impactLines, 25, y);
-        y += impactLines.length * 4 + 8;
+        // Title
+        pdf.setFontSize(13);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(rec.title, margin + 14, y + 5);
+        y += 14;
+
+        // Description
+        pdf.setFontSize(10);
+        pdf.setTextColor(71, 85, 105);
+        const descLines = pdf.splitTextToSize(rec.description, contentWidth - 14);
+        pdf.text(descLines, margin + 14, y);
+        y += descLines.length * 5 + 6;
+
+        // Impact
+        pdf.setFontSize(10);
+        pdf.setTextColor(22, 163, 74);
+        const impactLines = pdf.splitTextToSize(`Business Impact: ${rec.impact}`, contentWidth - 14);
+        pdf.text(impactLines, margin + 14, y);
+        y += impactLines.length * 5 + 15;
       });
 
-      // Footer
-      pdf.setFontSize(8);
-      pdf.setTextColor(156, 163, 175);
-      pdf.text('Generated by Platform Maturity Assessment Tool', pageWidth / 2, 285, { align: 'center' });
+      addFooter(4);
 
-      pdf.save('platform-maturity-assessment.pdf');
+      pdf.save('platform-maturity-executive-review.pdf');
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');
@@ -423,42 +472,27 @@ export default function Report({ assessment, onRestart }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div
-        className="rounded-xl shadow-lg p-8"
-        style={{ backgroundColor: 'var(--card)' }}
-      >
-        <h1
-          className="text-2xl font-bold mb-6 text-center"
-          style={{ color: 'var(--foreground)' }}
-        >
+    <div className="max-w-4xl mx-auto space-y-12">
+      {/* Header Card */}
+      <div className="card-executive p-10">
+        <h1 className="text-h1 text-center mb-10" style={{ color: 'var(--foreground)' }}>
           Platform Maturity Assessment Report
         </h1>
 
         <OverallScoreRing score={assessment.overallScore} />
 
         {/* Executive Summary */}
-        <div
-          className="mt-6 p-4 rounded-lg"
-          style={{ backgroundColor: 'var(--muted)' }}
-        >
-          <h2 className="font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
-            Executive Summary
-          </h2>
-          <p style={{ color: 'var(--muted-foreground)' }}>{assessment.executiveSummary}</p>
+        <div className="mt-10 p-6 rounded-xl" style={{ backgroundColor: 'var(--muted)' }}>
+          <h2 className="text-section-label mb-4">Executive Summary</h2>
+          <p className="text-body" style={{ color: 'var(--card-foreground)' }}>
+            {assessment.executiveSummary}
+          </p>
         </div>
       </div>
 
-      {/* Layer Scores - Ring Charts */}
-      <div
-        className="rounded-xl shadow-lg p-8"
-        style={{ backgroundColor: 'var(--card)' }}
-      >
-        <h2
-          className="text-xl font-bold mb-6 text-center"
-          style={{ color: 'var(--foreground)' }}
-        >
+      {/* Layer Scores */}
+      <div className="card-executive p-10">
+        <h2 className="text-h2 text-center mb-10" style={{ color: 'var(--foreground)' }}>
           Maturity by Layer
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -469,54 +503,39 @@ export default function Report({ assessment, onRestart }) {
               score={score}
               label={layerLabels[key]}
               config={layerConfig[key]}
-              delay={300 + index * 200}
+              delay={300 + index * 150}
             />
           ))}
         </div>
       </div>
 
       {/* Recommendations */}
-      <div
-        className="rounded-xl shadow-lg p-8"
-        style={{ backgroundColor: 'var(--card)' }}
-      >
-        <h2
-          className="text-xl font-bold mb-6"
-          style={{ color: 'var(--foreground)' }}
-        >
-          Top Recommendations
+      <div className="card-executive p-10">
+        <h2 className="text-h2 mb-8" style={{ color: 'var(--foreground)' }}>
+          Strategic Recommendations
         </h2>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {assessment.recommendations.map((rec, index) => (
             <div
               key={index}
-              className="p-4 rounded-lg border transition-all"
-              style={{
-                backgroundColor: 'var(--muted)',
-                borderColor: 'var(--border)'
-              }}
+              className="p-6 rounded-xl border"
+              style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-4">
                 <span
-                  className="flex-shrink-0 w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center shadow-md"
-                  style={{
-                    backgroundColor: 'var(--primary)',
-                    color: 'var(--primary-foreground)'
-                  }}
+                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ backgroundColor: 'var(--foreground)', color: 'var(--background)' }}
                 >
                   {index + 1}
                 </span>
                 <div>
-                  <h3 className="font-semibold" style={{ color: 'var(--foreground)' }}>
+                  <h3 className="font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
                     {rec.title}
                   </h3>
-                  <p className="mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                  <p className="mt-2 text-body" style={{ color: 'var(--muted-foreground)' }}>
                     {rec.description}
                   </p>
-                  <p
-                    className="text-sm mt-2 font-medium"
-                    style={{ color: 'var(--ring)' }}
-                  >
+                  <p className="mt-3 text-sm font-medium" style={{ color: '#16A34A' }}>
                     Impact: {rec.impact}
                   </p>
                 </div>
@@ -527,37 +546,28 @@ export default function Report({ assessment, onRestart }) {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap justify-center gap-4 pb-8">
+      <div className="flex flex-wrap justify-center gap-4 pb-12">
         <button
           onClick={onRestart}
-          className="px-6 py-2.5 rounded-lg transition-colors font-medium flex items-center gap-2 border"
-          style={{
-            borderColor: 'var(--border)',
-            color: 'var(--muted-foreground)'
-          }}
+          className="px-6 py-3 rounded-xl font-medium flex items-center gap-2 border transition-colors"
+          style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
         >
           <RotateCcw size={18} />
-          Start New Assessment
+          New Assessment
         </button>
         <button
           onClick={handleDownloadPDF}
           disabled={isGeneratingPDF}
-          className="px-6 py-2.5 rounded-lg transition-all font-medium shadow-md flex items-center gap-2 disabled:opacity-50"
-          style={{
-            backgroundColor: 'var(--primary)',
-            color: 'var(--primary-foreground)'
-          }}
+          className="px-8 py-3 rounded-xl font-semibold flex items-center gap-2 disabled:opacity-50 transition-all"
+          style={{ backgroundColor: 'var(--foreground)', color: 'var(--background)' }}
         >
           <Download size={18} />
-          {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+          {isGeneratingPDF ? 'Generating...' : 'Download Executive Report'}
         </button>
         <button
           onClick={handleShare}
-          className="px-6 py-2.5 rounded-lg transition-colors font-medium flex items-center gap-2 border"
-          style={{
-            borderColor: 'var(--ring)',
-            color: 'var(--ring)'
-          }}
+          className="px-6 py-3 rounded-xl font-medium flex items-center gap-2 border transition-colors"
+          style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
         >
           <Share2 size={18} />
           Share Results

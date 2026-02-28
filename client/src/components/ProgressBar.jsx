@@ -3,7 +3,10 @@ export default function ProgressBar({ current, total }) {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between text-sm mb-2" style={{ color: 'var(--muted-foreground)' }}>
+      <div
+        className="flex justify-between text-sm font-medium mb-3"
+        style={{ color: 'var(--muted-foreground)' }}
+      >
         <span>Question {current} of {total}</span>
         <span>{Math.round(percentage)}% complete</span>
       </div>
@@ -12,10 +15,10 @@ export default function ProgressBar({ current, total }) {
         style={{ backgroundColor: 'var(--muted)' }}
       >
         <div
-          className="h-full transition-all duration-300 ease-out"
+          className="h-full rounded-full transition-all duration-500 ease-out"
           style={{
             width: `${percentage}%`,
-            backgroundColor: 'var(--primary)'
+            backgroundColor: 'var(--foreground)'
           }}
         />
       </div>
