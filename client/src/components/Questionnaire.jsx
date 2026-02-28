@@ -90,7 +90,10 @@ export default function Questionnaire({ onComplete }) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg p-8">
+      <div
+        className="rounded-xl shadow-lg p-8"
+        style={{ backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }}
+      >
         <ProgressBar current={currentIndex + 1} total={questions.length} />
 
         <div className="mt-8">
@@ -106,7 +109,8 @@ export default function Questionnaire({ onComplete }) {
           <button
             onClick={handleBack}
             disabled={currentIndex === 0}
-            className="px-6 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: 'var(--muted-foreground)' }}
           >
             Back
           </button>
@@ -114,7 +118,11 @@ export default function Questionnaire({ onComplete }) {
           <button
             onClick={handleNext}
             disabled={!canProceed || isSubmitting}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'var(--primary-foreground)'
+            }}
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
