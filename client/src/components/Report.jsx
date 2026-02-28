@@ -4,7 +4,6 @@ import {
   Shield,
   Building2,
   Rocket,
-  TrendingUp,
   Share2,
   RotateCcw
 } from 'lucide-react';
@@ -290,8 +289,7 @@ export default function Report({ assessment, onRestart }) {
 
       {/* Recommendations */}
       <div className="bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <TrendingUp className="text-indigo-600" size={24} />
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
           Top Recommendations
         </h2>
         <div className="space-y-4">
@@ -307,8 +305,7 @@ export default function Report({ assessment, onRestart }) {
                 <div>
                   <h3 className="font-semibold text-gray-900">{rec.title}</h3>
                   <p className="text-gray-600 mt-1">{rec.description}</p>
-                  <p className="text-sm text-indigo-600 mt-2 font-medium flex items-center gap-1">
-                    <TrendingUp size={14} />
+                  <p className="text-sm text-indigo-600 mt-2 font-medium">
                     Impact: {rec.impact}
                   </p>
                 </div>
