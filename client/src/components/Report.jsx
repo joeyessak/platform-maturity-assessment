@@ -1,4 +1,13 @@
 import { useEffect, useState } from 'react';
+import {
+  Cog,
+  Shield,
+  Building2,
+  Rocket,
+  TrendingUp,
+  Share2,
+  RotateCcw
+} from 'lucide-react';
 
 const layerLabels = {
   platformServices: 'Platform Services',
@@ -11,43 +20,54 @@ const layerConfig = {
   platformServices: {
     color: '#3B82F6',
     gradient: ['#3B82F6', '#1D4ED8'],
-    icon: '⚙️',
+    Icon: Cog,
     description: 'CI/CD, Infrastructure as Code',
   },
   cloudGovernance: {
     color: '#10B981',
     gradient: ['#10B981', '#047857'],
-    icon: '🛡️',
+    Icon: Shield,
     description: 'Cost management, Access controls',
   },
   portfolioArchitecture: {
     color: '#8B5CF6',
     gradient: ['#8B5CF6', '#6D28D9'],
-    icon: '🏗️',
+    Icon: Building2,
     description: 'Service standardization, Tech choices',
   },
   productExecution: {
     color: '#F59E0B',
     gradient: ['#F59E0B', '#D97706'],
-    icon: '🚀',
+    Icon: Rocket,
     description: 'Delivery visibility, AI readiness',
   },
 };
 
-function RingProgress({ score, label, config, delay = 0 }) {
+function RingProgress({ score, layerKey, label, config, delay = 0 }) {
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
   const size = 120;
   const strokeWidth = 10;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const percentage = (animatedScore / 5) * 100;
   const offset = circumference - (percentage / 100) * circumference;
+  const gradientId = `gradient-${layerKey}`;
+  const Icon = config.Icon;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimatedScore(score);
+    const visibleTimer = setTimeout(() => {
+      setIsVisible(true);
     }, delay);
-    return () => clearTimeout(timer);
+
+    const scoreTimer = setTimeout(() => {
+      setAnimatedScore(score);
+    }, delay + 100);
+
+    return () => {
+      clearTimeout(visibleTimer);
+      clearTimeout(scoreTimer);
+    };
   }, [score, delay]);
 
   const getScoreLabel = (s) => {
@@ -63,7 +83,7 @@ function RingProgress({ score, label, config, delay = 0 }) {
       <div className="relative">
         <svg width={size} height={size} className="transform -rotate-90">
           <defs>
-            <linearGradient id={`gradient-${label}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor={config.gradient[0]} />
               <stop offset="100%" stopColor={config.gradient[1]} />
             </linearGradient>
@@ -82,19 +102,28 @@ function RingProgress({ score, label, config, delay = 0 }) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={`url(#gradient-${label})`}
+            stroke={`url(#${gradientId})`}
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            className="transition-all duration-1000 ease-out"
+            strokeDashoffset={isVisible ? offset : circumference}
+            style={{
+              transition: 'stroke-dashoffset 1s ease-out',
+            }}
           />
         </svg>
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl">{config.icon}</span>
-          <span className="text-xl font-bold" style={{ color: config.color }}>
+          <Icon
+            size={24}
+            style={{ color: config.color }}
+            strokeWidth={1.5}
+          />
+          <span
+            className="text-xl font-bold mt-1"
+            style={{ color: config.color }}
+          >
             {animatedScore.toFixed(1)}
           </span>
         </div>
@@ -103,8 +132,8 @@ function RingProgress({ score, label, config, delay = 0 }) {
         <div className="font-semibold text-gray-900 text-sm">{label}</div>
         <div className="text-xs text-gray-500 mt-1">{config.description}</div>
         <div
-          className="text-xs font-medium mt-1 px-2 py-0.5 rounded-full inline-block"
-          style={{ backgroundColor: `${config.color}20`, color: config.color }}
+          className="text-xs font-medium mt-2 px-3 py-1 rounded-full inline-block"
+          style={{ backgroundColor: `${config.color}15`, color: config.color }}
         >
           {getScoreLabel(score)}
         </div>
@@ -115,6 +144,7 @@ function RingProgress({ score, label, config, delay = 0 }) {
 
 function OverallScoreRing({ score }) {
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
   const size = 180;
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
@@ -123,10 +153,18 @@ function OverallScoreRing({ score }) {
   const offset = circumference - (percentage / 100) * circumference;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimatedScore(score);
+    const visibleTimer = setTimeout(() => {
+      setIsVisible(true);
     }, 100);
-    return () => clearTimeout(timer);
+
+    const scoreTimer = setTimeout(() => {
+      setAnimatedScore(score);
+    }, 200);
+
+    return () => {
+      clearTimeout(visibleTimer);
+      clearTimeout(scoreTimer);
+    };
   }, [score]);
 
   const getScoreColor = (s) => {
@@ -177,8 +215,10 @@ function OverallScoreRing({ score }) {
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            className="transition-all duration-1000 ease-out"
+            strokeDashoffset={isVisible ? offset : circumference}
+            style={{
+              transition: 'stroke-dashoffset 1.2s ease-out',
+            }}
           />
         </svg>
         {/* Center content */}
@@ -238,10 +278,11 @@ export default function Report({ assessment, onRestart }) {
           {Object.entries(assessment.layerScores).map(([key, score], index) => (
             <RingProgress
               key={key}
+              layerKey={key}
               score={score}
               label={layerLabels[key]}
               config={layerConfig[key]}
-              delay={200 + index * 150}
+              delay={300 + index * 200}
             />
           ))}
         </div>
@@ -249,7 +290,8 @@ export default function Report({ assessment, onRestart }) {
 
       {/* Recommendations */}
       <div className="bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <TrendingUp className="text-indigo-600" size={24} />
           Top Recommendations
         </h2>
         <div className="space-y-4">
@@ -266,7 +308,8 @@ export default function Report({ assessment, onRestart }) {
                   <h3 className="font-semibold text-gray-900">{rec.title}</h3>
                   <p className="text-gray-600 mt-1">{rec.description}</p>
                   <p className="text-sm text-indigo-600 mt-2 font-medium flex items-center gap-1">
-                    <span>📈</span> Impact: {rec.impact}
+                    <TrendingUp size={14} />
+                    Impact: {rec.impact}
                   </p>
                 </div>
               </div>
@@ -279,14 +322,16 @@ export default function Report({ assessment, onRestart }) {
       <div className="flex justify-center gap-4 pb-8">
         <button
           onClick={onRestart}
-          className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
         >
+          <RotateCcw size={18} />
           Start New Assessment
         </button>
         <button
           onClick={handleShare}
-          className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium shadow-md hover:shadow-lg"
+          className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center gap-2"
         >
+          <Share2 size={18} />
           Share Results
         </button>
       </div>
