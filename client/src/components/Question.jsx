@@ -10,10 +10,10 @@ export default function Question({ question, layer, value, onChange }) {
   return (
     <div className="space-y-4">
       <div>
-        <span className="inline-block px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full mb-2">
+        <span className="inline-block px-3 py-1 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 rounded-full mb-2">
           {layer}
         </span>
-        <h2 className="text-xl font-semibold text-gray-900">{question}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{question}</h2>
       </div>
 
       <div className="space-y-2">
@@ -23,8 +23,8 @@ export default function Question({ question, layer, value, onChange }) {
             onClick={() => onChange(level.value)}
             className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
               value === level.value
-                ? 'border-indigo-600 bg-indigo-50'
-                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
+                : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <div className="flex items-center gap-3">
@@ -32,14 +32,14 @@ export default function Question({ question, layer, value, onChange }) {
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                   value === level.value
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
                 {level.value}
               </span>
               <div>
-                <div className="font-medium text-gray-900">{level.label}</div>
-                <div className="text-sm text-gray-500">{level.description}</div>
+                <div className="font-medium text-gray-900 dark:text-white">{level.label}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{level.description}</div>
               </div>
             </div>
           </button>
