@@ -17,29 +17,66 @@ const layerLabels = {
   productExecution: 'Product & Client Execution',
 };
 
-// Using chart colors from the design system (CSS variables)
+// Layer icons and descriptions
 const layerConfig = {
   platformServices: {
-    colorVar: '--chart-1',
     Icon: Cog,
     description: 'CI/CD, Infrastructure as Code',
   },
   cloudGovernance: {
-    colorVar: '--chart-2',
     Icon: Shield,
     description: 'Cost management, Access controls',
   },
   portfolioArchitecture: {
-    colorVar: '--chart-3',
     Icon: Building2,
     description: 'Service standardization, Tech choices',
   },
   productExecution: {
-    colorVar: '--chart-4',
     Icon: Rocket,
     description: 'Delivery visibility, AI readiness',
   },
 };
+
+// Score-based color gradient: red (suffering) → yellow (surviving) → green (thriving)
+const scoreColors = [
+  { score: 1.0, color: [220, 38, 38] },   // Deep red
+  { score: 1.5, color: [239, 68, 68] },   // Red
+  { score: 2.0, color: [248, 113, 113] }, // Light red
+  { score: 2.5, color: [251, 146, 60] },  // Orange
+  { score: 3.0, color: [251, 191, 36] },  // Yellow-orange
+  { score: 3.5, color: [250, 204, 21] },  // Yellow
+  { score: 4.0, color: [163, 230, 53] },  // Lime
+  { score: 4.5, color: [74, 222, 128] },  // Light green
+  { score: 5.0, color: [34, 197, 94] },   // Green
+];
+
+function getScoreColor(score) {
+  // Clamp score between 1 and 5
+  const clampedScore = Math.max(1, Math.min(5, score));
+
+  // Find the two colors to interpolate between
+  let lower = scoreColors[0];
+  let upper = scoreColors[scoreColors.length - 1];
+
+  for (let i = 0; i < scoreColors.length - 1; i++) {
+    if (clampedScore >= scoreColors[i].score && clampedScore <= scoreColors[i + 1].score) {
+      lower = scoreColors[i];
+      upper = scoreColors[i + 1];
+      break;
+    }
+  }
+
+  // Calculate interpolation factor
+  const range = upper.score - lower.score;
+  const factor = range === 0 ? 0 : (clampedScore - lower.score) / range;
+
+  // Interpolate RGB values
+  const r = Math.round(lower.color[0] + (upper.color[0] - lower.color[0]) * factor);
+  const g = Math.round(lower.color[1] + (upper.color[1] - lower.color[1]) * factor);
+  const b = Math.round(lower.color[2] + (upper.color[2] - lower.color[2]) * factor);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
 
 function RingProgress({ score, layerKey, label, config, delay = 0 }) {
   const [animatedScore, setAnimatedScore] = useState(0);
@@ -51,7 +88,7 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
   const percentage = (animatedScore / 5) * 100;
   const offset = circumference - (percentage / 100) * circumference;
   const Icon = config.Icon;
-  const colorStyle = `var(${config.colorVar})`;
+  const scoreColor = getScoreColor(animatedScore || 1);
 
   useEffect(() => {
     const visibleTimer = setTimeout(() => {
@@ -97,14 +134,14 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={colorStyle}
+            stroke={scoreColor}
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={isVisible ? offset : circumference}
             style={{
-              transition: 'stroke-dashoffset 1s ease-out',
+              transition: 'stroke-dashoffset 1s ease-out, stroke 0.5s ease-out',
             }}
           />
         </svg>
@@ -112,12 +149,12 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <Icon
             size={24}
-            style={{ color: colorStyle }}
+            style={{ color: scoreColor }}
             strokeWidth={1.5}
           />
           <span
             className="text-xl font-bold mt-1"
-            style={{ color: colorStyle }}
+            style={{ color: scoreColor }}
           >
             {animatedScore.toFixed(1)}
           </span>
@@ -133,8 +170,8 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
         <div
           className="text-xs font-medium mt-2 px-3 py-1 rounded-full inline-block"
           style={{
-            backgroundColor: 'var(--accent)',
-            color: colorStyle
+            backgroundColor: scoreColor,
+            color: score >= 3.5 ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
           }}
         >
           {getScoreLabel(score)}
@@ -153,6 +190,7 @@ function OverallScoreRing({ score }) {
   const circumference = radius * 2 * Math.PI;
   const percentage = (animatedScore / 5) * 100;
   const offset = circumference - (percentage / 100) * circumference;
+  const scoreColor = getScoreColor(animatedScore || 1);
 
   useEffect(() => {
     const visibleTimer = setTimeout(() => {
@@ -169,7 +207,7 @@ function OverallScoreRing({ score }) {
     };
   }, [score]);
 
-  const getScoreLabel = (s) => {
+  const getScoreLabelText = (s) => {
     if (s >= 4.5) return 'Optimized';
     if (s >= 3.5) return 'Mature';
     if (s >= 2.5) return 'Developing';
@@ -201,20 +239,20 @@ function OverallScoreRing({ score }) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="var(--ring)"
+            stroke={scoreColor}
             strokeWidth={strokeWidth}
             fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={isVisible ? offset : circumference}
             style={{
-              transition: 'stroke-dashoffset 1.2s ease-out',
+              transition: 'stroke-dashoffset 1.2s ease-out, stroke 0.5s ease-out',
             }}
           />
         </svg>
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold" style={{ color: 'var(--ring)' }}>
+          <span className="text-4xl font-bold" style={{ color: scoreColor }}>
             {animatedScore.toFixed(1)}
           </span>
           <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>out of 5</span>
@@ -223,11 +261,11 @@ function OverallScoreRing({ score }) {
       <div
         className="mt-4 px-4 py-1.5 rounded-full text-sm font-semibold"
         style={{
-          backgroundColor: 'var(--accent)',
-          color: 'var(--accent-foreground)'
+          backgroundColor: scoreColor,
+          color: score >= 3.5 ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
         }}
       >
-        {getScoreLabel(score)}
+        {getScoreLabelText(score)}
       </div>
     </div>
   );
