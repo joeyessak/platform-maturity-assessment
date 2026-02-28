@@ -80,7 +80,7 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
   };
 
   return (
-    <div className="flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+    <div className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
       <div className="relative">
         <svg width={size} height={size} className="transform -rotate-90">
           <defs>
@@ -95,7 +95,6 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
             cy={size / 2}
             r={radius}
             stroke="#E5E7EB"
-            className="dark:stroke-gray-700"
             strokeWidth={strokeWidth}
             fill="none"
           />
@@ -131,8 +130,8 @@ function RingProgress({ score, layerKey, label, config, delay = 0 }) {
         </div>
       </div>
       <div className="mt-3 text-center">
-        <div className="font-semibold text-gray-900 dark:text-white text-sm">{label}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{config.description}</div>
+        <div className="font-semibold text-gray-900 text-sm">{label}</div>
+        <div className="text-xs text-gray-500 mt-1">{config.description}</div>
         <div
           className="text-xs font-medium mt-2 px-3 py-1 rounded-full inline-block"
           style={{ backgroundColor: `${config.color}15`, color: config.color }}
@@ -170,10 +169,10 @@ function OverallScoreRing({ score }) {
   }, [score]);
 
   const getScoreColor = (s) => {
-    if (s >= 4) return { main: '#10B981', light: '#D1FAE5', darkLight: '#064E3B' };
-    if (s >= 3) return { main: '#F59E0B', light: '#FEF3C7', darkLight: '#78350F' };
-    if (s >= 2) return { main: '#F97316', light: '#FFEDD5', darkLight: '#7C2D12' };
-    return { main: '#EF4444', light: '#FEE2E2', darkLight: '#7F1D1D' };
+    if (s >= 4) return { main: '#10B981', light: '#D1FAE5' };
+    if (s >= 3) return { main: '#F59E0B', light: '#FEF3C7' };
+    if (s >= 2) return { main: '#F97316', light: '#FFEDD5' };
+    return { main: '#EF4444', light: '#FEE2E2' };
   };
 
   const getScoreLabel = (s) => {
@@ -187,8 +186,8 @@ function OverallScoreRing({ score }) {
   const colors = getScoreColor(score);
 
   return (
-    <div className="flex flex-col items-center p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50 rounded-xl">
-      <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">Overall Maturity Score</div>
+    <div className="flex flex-col items-center p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl">
+      <div className="text-sm font-medium text-gray-600 mb-4">Overall Maturity Score</div>
       <div className="relative">
         <svg width={size} height={size} className="transform -rotate-90">
           <defs>
@@ -204,7 +203,6 @@ function OverallScoreRing({ score }) {
             cy={size / 2}
             r={radius}
             stroke="#E5E7EB"
-            className="dark:stroke-gray-700"
             strokeWidth={strokeWidth}
             fill="none"
           />
@@ -226,20 +224,17 @@ function OverallScoreRing({ score }) {
         </svg>
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">
+          <span className="text-4xl font-bold text-indigo-600">
             {animatedScore.toFixed(1)}
           </span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">out of 5</span>
+          <span className="text-sm text-gray-500">out of 5</span>
         </div>
       </div>
       <div
         className="mt-4 px-4 py-1.5 rounded-full text-sm font-semibold"
         style={{ backgroundColor: colors.light, color: colors.main }}
       >
-        <span className="dark:hidden">{getScoreLabel(score)}</span>
-        <span className="hidden dark:inline" style={{ backgroundColor: colors.darkLight, color: colors.main }}>
-          {getScoreLabel(score)}
-        </span>
+        {getScoreLabel(score)}
       </div>
     </div>
   );
@@ -399,23 +394,23 @@ export default function Report({ assessment, onRestart }) {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900/50 p-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
           Platform Maturity Assessment Report
         </h1>
 
         <OverallScoreRing score={assessment.overallScore} />
 
         {/* Executive Summary */}
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-2">Executive Summary</h2>
-          <p className="text-gray-700 dark:text-gray-300">{assessment.executiveSummary}</p>
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <h2 className="font-semibold text-gray-900 mb-2">Executive Summary</h2>
+          <p className="text-gray-700">{assessment.executiveSummary}</p>
         </div>
       </div>
 
       {/* Layer Scores - Ring Charts */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900/50 p-8">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 text-center">Maturity by Layer</h2>
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Maturity by Layer</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Object.entries(assessment.layerScores).map(([key, score], index) => (
             <RingProgress
@@ -431,24 +426,24 @@ export default function Report({ assessment, onRestart }) {
       </div>
 
       {/* Recommendations */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900/50 p-8">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
           Top Recommendations
         </h2>
         <div className="space-y-4">
           {assessment.recommendations.map((rec, index) => (
             <div
               key={index}
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md dark:hover:shadow-indigo-900/20 transition-all"
+              className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-md transition-all"
             >
               <div className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold flex items-center justify-center shadow-md">
                   {index + 1}
                 </span>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{rec.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">{rec.description}</p>
-                  <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-2 font-medium">
+                  <h3 className="font-semibold text-gray-900">{rec.title}</h3>
+                  <p className="text-gray-600 mt-1">{rec.description}</p>
+                  <p className="text-sm text-indigo-600 mt-2 font-medium">
                     Impact: {rec.impact}
                   </p>
                 </div>
@@ -462,7 +457,7 @@ export default function Report({ assessment, onRestart }) {
       <div className="flex flex-wrap justify-center gap-4 pb-8">
         <button
           onClick={onRestart}
-          className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium flex items-center gap-2"
+          className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
         >
           <RotateCcw size={18} />
           Start New Assessment
@@ -477,7 +472,7 @@ export default function Report({ assessment, onRestart }) {
         </button>
         <button
           onClick={handleShare}
-          className="px-6 py-2.5 border border-indigo-600 dark:border-indigo-500 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors font-medium flex items-center gap-2"
+          className="px-6 py-2.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors font-medium flex items-center gap-2"
         >
           <Share2 size={18} />
           Share Results

@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light only;
+}
+
+html {
+  color-scheme: light only;
+}
+
 body {
   @apply bg-gray-50 text-gray-900 min-h-screen;
-  @apply dark:bg-gray-900 dark:text-gray-100;
 }
