@@ -1,5 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import { useEffect, useState } from 'react';
 import jsPDF from 'jspdf';
 import {
   Cog,
@@ -241,8 +240,15 @@ function OverallScoreRing({ score }) {
   );
 }
 
+function getScoreLabel(s) {
+  if (s >= 4.5) return 'Optimized';
+  if (s >= 3.5) return 'Mature';
+  if (s >= 2.5) return 'Developing';
+  if (s >= 1.5) return 'Basic';
+  return 'Ad-hoc';
+}
+
 export default function Report({ assessment, onRestart }) {
-  const reportRef = useRef(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handleShare = () => {
@@ -259,35 +265,123 @@ export default function Report({ assessment, onRestart }) {
     }
   };
 
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return;
-
+  const handleDownloadPDF = () => {
     setIsGeneratingPDF(true);
 
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#F3F4F6',
-      });
-
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 10;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      let y = 20;
 
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      // Title
+      pdf.setFontSize(22);
+      pdf.setTextColor(31, 41, 55);
+      pdf.text('Platform Maturity Assessment Report', pageWidth / 2, y, { align: 'center' });
+      y += 15;
+
+      // Overall Score
+      pdf.setFontSize(14);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Overall Maturity Score', pageWidth / 2, y, { align: 'center' });
+      y += 10;
+
+      pdf.setFontSize(36);
+      pdf.setTextColor(79, 70, 229);
+      pdf.text(`${assessment.overallScore.toFixed(1)}`, pageWidth / 2, y, { align: 'center' });
+      y += 8;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(`out of 5 - ${getScoreLabel(assessment.overallScore)}`, pageWidth / 2, y, { align: 'center' });
+      y += 15;
+
+      // Executive Summary
+      pdf.setFontSize(14);
+      pdf.setTextColor(31, 41, 55);
+      pdf.text('Executive Summary', 20, y);
+      y += 8;
+
+      pdf.setFontSize(10);
+      pdf.setTextColor(55, 65, 81);
+      const summaryLines = pdf.splitTextToSize(assessment.executiveSummary, pageWidth - 40);
+      pdf.text(summaryLines, 20, y);
+      y += summaryLines.length * 5 + 10;
+
+      // Layer Scores
+      pdf.setFontSize(14);
+      pdf.setTextColor(31, 41, 55);
+      pdf.text('Maturity by Layer', 20, y);
+      y += 10;
+
+      const layers = [
+        { key: 'platformServices', label: 'Platform Services', color: [59, 130, 246] },
+        { key: 'cloudGovernance', label: 'Cloud Governance', color: [16, 185, 129] },
+        { key: 'portfolioArchitecture', label: 'Portfolio Architecture', color: [139, 92, 246] },
+        { key: 'productExecution', label: 'Product & Client Execution', color: [245, 158, 11] },
+      ];
+
+      layers.forEach((layer) => {
+        const score = assessment.layerScores[layer.key];
+        const barWidth = (score / 5) * 100;
+
+        pdf.setFontSize(11);
+        pdf.setTextColor(31, 41, 55);
+        pdf.text(layer.label, 20, y);
+        pdf.text(`${score.toFixed(1)}/5 - ${getScoreLabel(score)}`, pageWidth - 20, y, { align: 'right' });
+        y += 5;
+
+        // Background bar
+        pdf.setFillColor(229, 231, 235);
+        pdf.roundedRect(20, y, 100, 4, 2, 2, 'F');
+
+        // Progress bar
+        pdf.setFillColor(...layer.color);
+        pdf.roundedRect(20, y, barWidth, 4, 2, 2, 'F');
+        y += 12;
+      });
+
+      y += 5;
+
+      // Recommendations
+      pdf.setFontSize(14);
+      pdf.setTextColor(31, 41, 55);
+      pdf.text('Top Recommendations', 20, y);
+      y += 10;
+
+      assessment.recommendations.forEach((rec, index) => {
+        // Check if we need a new page
+        if (y > 250) {
+          pdf.addPage();
+          y = 20;
+        }
+
+        pdf.setFontSize(11);
+        pdf.setTextColor(79, 70, 229);
+        pdf.text(`${index + 1}. ${rec.title}`, 20, y);
+        y += 6;
+
+        pdf.setFontSize(10);
+        pdf.setTextColor(75, 85, 99);
+        const descLines = pdf.splitTextToSize(rec.description, pageWidth - 45);
+        pdf.text(descLines, 25, y);
+        y += descLines.length * 4 + 3;
+
+        pdf.setTextColor(79, 70, 229);
+        const impactLines = pdf.splitTextToSize(`Impact: ${rec.impact}`, pageWidth - 45);
+        pdf.text(impactLines, 25, y);
+        y += impactLines.length * 4 + 8;
+      });
+
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(156, 163, 175);
+      pdf.text('Generated by Platform Maturity Assessment Tool', pageWidth / 2, 285, { align: 'center' });
+
       pdf.save('platform-maturity-assessment.pdf');
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -299,65 +393,63 @@ export default function Report({ assessment, onRestart }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div ref={reportRef} className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Platform Maturity Assessment Report
-          </h1>
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+          Platform Maturity Assessment Report
+        </h1>
 
-          <OverallScoreRing score={assessment.overallScore} />
+        <OverallScoreRing score={assessment.overallScore} />
 
-          {/* Executive Summary */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h2 className="font-semibold text-gray-900 mb-2">Executive Summary</h2>
-            <p className="text-gray-700">{assessment.executiveSummary}</p>
-          </div>
+        {/* Executive Summary */}
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <h2 className="font-semibold text-gray-900 mb-2">Executive Summary</h2>
+          <p className="text-gray-700">{assessment.executiveSummary}</p>
         </div>
+      </div>
 
-        {/* Layer Scores - Ring Charts */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Maturity by Layer</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(assessment.layerScores).map(([key, score], index) => (
-              <RingProgress
-                key={key}
-                layerKey={key}
-                score={score}
-                label={layerLabels[key]}
-                config={layerConfig[key]}
-                delay={300 + index * 200}
-              />
-            ))}
-          </div>
+      {/* Layer Scores - Ring Charts */}
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Maturity by Layer</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Object.entries(assessment.layerScores).map(([key, score], index) => (
+            <RingProgress
+              key={key}
+              layerKey={key}
+              score={score}
+              label={layerLabels[key]}
+              config={layerConfig[key]}
+              delay={300 + index * 200}
+            />
+          ))}
         </div>
+      </div>
 
-        {/* Recommendations */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">
-            Top Recommendations
-          </h2>
-          <div className="space-y-4">
-            {assessment.recommendations.map((rec, index) => (
-              <div
-                key={index}
-                className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-md transition-all"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold flex items-center justify-center shadow-md">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{rec.title}</h3>
-                    <p className="text-gray-600 mt-1">{rec.description}</p>
-                    <p className="text-sm text-indigo-600 mt-2 font-medium">
-                      Impact: {rec.impact}
-                    </p>
-                  </div>
+      {/* Recommendations */}
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          Top Recommendations
+        </h2>
+        <div className="space-y-4">
+          {assessment.recommendations.map((rec, index) => (
+            <div
+              key={index}
+              className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-md transition-all"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold flex items-center justify-center shadow-md">
+                  {index + 1}
+                </span>
+                <div>
+                  <h3 className="font-semibold text-gray-900">{rec.title}</h3>
+                  <p className="text-gray-600 mt-1">{rec.description}</p>
+                  <p className="text-sm text-indigo-600 mt-2 font-medium">
+                    Impact: {rec.impact}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
