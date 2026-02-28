@@ -10,7 +10,7 @@ export default function Question({ question, layer, value, onChange }) {
   return (
     <div className="space-y-4">
       <div>
-        <span className="inline-block px-3 py-1 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 rounded-full mb-2">
+        <span className="inline-block px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200 rounded-full mb-2">
           {layer}
         </span>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{question}</h2>
@@ -32,7 +32,7 @@ export default function Question({ question, layer, value, onChange }) {
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                   value === level.value
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    : 'bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-200'
                 }`}
               >
                 {level.value}
