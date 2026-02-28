@@ -388,43 +388,50 @@ export default function Report({ assessment, onRestart }) {
     try {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
 
-      // ===== LAYOUT SYSTEM =====
+      // ===== LAYOUT SYSTEM - Executive Briefing Format =====
       const PAGE = {
         width: pdf.internal.pageSize.getWidth(),   // 215.9mm
         height: pdf.internal.pageSize.getHeight(), // 279.4mm
       };
 
+      // Strict 1-inch margins (25.4mm)
       const MARGIN = {
-        top: 25,
-        bottom: 32,      // Reserved for footer zone
-        left: 25,
-        right: 25,
+        top: 25.4,
+        bottom: 25.4,
+        left: 25.4,
+        right: 25.4,
       };
 
       const CONTENT = {
-        width: PAGE.width - MARGIN.left - MARGIN.right,
-        maxY: PAGE.height - MARGIN.bottom - 15, // Content safe zone (footer buffer)
+        width: PAGE.width - MARGIN.left - MARGIN.right,  // ~165mm
+        height: PAGE.height - MARGIN.top - MARGIN.bottom,
+        maxY: PAGE.height - MARGIN.bottom - 10,
       };
 
-      // Spacing tokens (consistent vertical rhythm)
+      // Two-column layout
+      const COL = {
+        width: (CONTENT.width - 8) / 2,  // 8mm gutter
+        gutter: 8,
+      };
+
+      // Compact spacing tokens
       const SPACE = {
-        section: 16,      // Between major sections
-        subsection: 10,   // Between subsections
-        paragraph: 5,     // Between paragraphs
-        line: 4,          // Line height addition
+        section: 8,
+        subsection: 5,
+        paragraph: 3,
+        line: 3.5,
       };
 
       // Typography scale
       const FONT = {
-        h1: 28,
-        h2: 20,
-        h3: 14,
-        body: 11,
-        small: 10,
-        label: 9,
+        h1: 24,
+        h2: 16,
+        h3: 11,
+        body: 9,
+        small: 8,
+        label: 7,
       };
 
-      // Current Y position tracker
       let y = MARGIN.top;
 
       // ===== HELPER FUNCTIONS =====
@@ -435,141 +442,120 @@ export default function Report({ assessment, onRestart }) {
 
       const addFooter = () => {
         pdf.setFontSize(FONT.label);
-        pdf.setTextColor(120, 120, 120);
-        pdf.text('Prepared by Joey Essak', MARGIN.left, PAGE.height - 12);
-        pdf.text('joey.essak@gmail.com | linkedin.com/in/joeyessak', PAGE.width - MARGIN.right, PAGE.height - 12, { align: 'right' });
-      };
-
-      // Check if content fits, add page break if needed
-      const ensureSpace = (requiredHeight) => {
-        if (y + requiredHeight > CONTENT.maxY) {
-          addFooter();
-          pdf.addPage();
-          y = MARGIN.top;
-          return true; // Page was added
-        }
-        return false;
-      };
-
-      // Calculate text block height
-      const getTextHeight = (text, width, fontSize) => {
-        pdf.setFontSize(fontSize);
-        const lines = pdf.splitTextToSize(text, width);
-        return lines.length * (fontSize * 0.4); // Approximate line height in mm
+        pdf.setTextColor(130, 130, 130);
+        pdf.text('Prepared by Joey Essak', MARGIN.left, PAGE.height - MARGIN.bottom + 8);
+        pdf.text('joey.essak@gmail.com', PAGE.width - MARGIN.right, PAGE.height - MARGIN.bottom + 8, { align: 'right' });
       };
 
       const drawProgressBar = (x, yPos, width, score, colors) => {
-        // Background track
-        pdf.setFillColor(209, 213, 219);
-        pdf.roundedRect(x, yPos, width, 5, 2, 2, 'F');
-        // Filled portion
+        pdf.setFillColor(220, 220, 220);
+        pdf.roundedRect(x, yPos, width, 3, 1.5, 1.5, 'F');
         const barWidth = (score / 5) * width;
         pdf.setFillColor(...hexToRgb(colors.start));
-        pdf.roundedRect(x, yPos, barWidth, 5, 2, 2, 'F');
+        pdf.roundedRect(x, yPos, barWidth, 3, 1.5, 1.5, 'F');
       };
 
-      // ===== PAGE 1: COVER PAGE =====
-      // Cover page has special centered layout
-      y = 75;
+      // ===== PAGE 1: COVER (Minimal, No Footer) =====
+      y = 90;
 
-      pdf.setFontSize(32);
+      pdf.setFontSize(28);
       pdf.setTextColor(15, 23, 42);
       pdf.text('Platform Maturity', PAGE.width / 2, y, { align: 'center' });
-      y += 12;
+      y += 10;
       pdf.text('Executive Review', PAGE.width / 2, y, { align: 'center' });
-      y += SPACE.section * 2;
+      y += 20;
 
-      pdf.setFontSize(FONT.h3);
+      pdf.setFontSize(12);
       pdf.setTextColor(100, 116, 139);
       pdf.text('Enterprise Advisory Diagnostic', PAGE.width / 2, y, { align: 'center' });
-      y += SPACE.section * 4;
+      y += 45;
 
-      pdf.setFontSize(FONT.body);
+      pdf.setFontSize(10);
       pdf.setTextColor(71, 85, 105);
       pdf.text('Prepared by', PAGE.width / 2, y, { align: 'center' });
-      y += SPACE.subsection;
+      y += 8;
 
-      pdf.setFontSize(16);
+      pdf.setFontSize(14);
       pdf.setTextColor(15, 23, 42);
       pdf.text('Joey Essak', PAGE.width / 2, y, { align: 'center' });
-      y += 7;
+      y += 6;
 
-      pdf.setFontSize(FONT.body);
+      pdf.setFontSize(10);
       pdf.setTextColor(100, 116, 139);
       pdf.text('Platform & AI Strategy', PAGE.width / 2, y, { align: 'center' });
-      y += SPACE.section;
+      y += 12;
 
-      pdf.setFontSize(FONT.small);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text('joey.essak@gmail.com', PAGE.width / 2, y, { align: 'center' });
-      y += 5;
-      pdf.text('linkedin.com/in/joeyessak', PAGE.width / 2, y, { align: 'center' });
+      pdf.setFontSize(9);
+      pdf.setTextColor(130, 130, 130);
+      pdf.text('joey.essak@gmail.com  |  linkedin.com/in/joeyessak', PAGE.width / 2, y, { align: 'center' });
 
-      // ===== PAGE 2: EXECUTIVE SNAPSHOT =====
+      // ===== PAGE 2: EXECUTIVE OVERVIEW (Single Dense Page) =====
       pdf.addPage();
       y = MARGIN.top;
 
       // Page title
       pdf.setFontSize(FONT.h2);
       pdf.setTextColor(15, 23, 42);
-      pdf.text('Executive Snapshot', MARGIN.left, y);
+      pdf.text('Executive Overview', MARGIN.left, y);
       y += SPACE.section + 4;
 
-      // Section: Overall Maturity Score
+      // TOP SECTION: Score + Delta (side by side)
+      const overallColors = getMaturityColors(assessment.overallScore);
+      const delta = TARGET_STATE - assessment.overallScore;
+
+      // Score block (left)
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('OVERALL MATURITY SCORE', MARGIN.left, y);
-      y += SPACE.subsection + 2;
+      pdf.text('OVERALL MATURITY', MARGIN.left, y);
 
-      const overallColors = getMaturityColors(assessment.overallScore);
-      pdf.setFontSize(42);
+      // Delta block (right aligned)
+      pdf.text('DELTA TO TARGET', MARGIN.left + COL.width + COL.gutter, y);
+      y += SPACE.subsection;
+
+      // Large score
+      pdf.setFontSize(36);
       pdf.setTextColor(...hexToRgb(overallColors.text));
       pdf.text(assessment.overallScore.toFixed(1), MARGIN.left, y);
 
-      pdf.setFontSize(FONT.h3);
+      pdf.setFontSize(12);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('out of 5', MARGIN.left + 38, y - 4);
-      y += 8;
+      pdf.text('/ 5', MARGIN.left + 28, y - 2);
 
-      // Status badge
+      // Status badge inline
       pdf.setFillColor(...hexToRgb(overallColors.text));
-      pdf.roundedRect(MARGIN.left, y, 32, 7, 3, 3, 'F');
-      pdf.setFontSize(8);
+      pdf.roundedRect(MARGIN.left + 42, y - 10, 24, 6, 3, 3, 'F');
+      pdf.setFontSize(7);
       pdf.setTextColor(255, 255, 255);
-      pdf.text(getMaturityLabel(assessment.overallScore), MARGIN.left + 16, y + 5, { align: 'center' });
+      pdf.text(getMaturityLabel(assessment.overallScore), MARGIN.left + 54, y - 6, { align: 'center' });
+
+      // Delta display
+      const deltaX = MARGIN.left + COL.width + COL.gutter;
+      pdf.setFontSize(24);
+      pdf.setTextColor(...hexToRgb(delta > 0 ? '#EA580C' : '#16A34A'));
+      pdf.text(`${delta > 0 ? '+' : ''}${delta.toFixed(1)}`, deltaX, y);
+
+      pdf.setFontSize(FONT.small);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(`to reach ${TARGET_STATE.toFixed(1)} target`, deltaX + 22, y - 2);
+
+      y += 6;
+
+      // Industry Benchmark (subtle)
+      pdf.setFontSize(FONT.small);
+      pdf.setTextColor(130, 130, 130);
+      pdf.text(`Industry Benchmark: ${INDUSTRY_BENCHMARK}`, MARGIN.left, y);
       y += SPACE.section;
 
       // Executive Interpretation
       if (assessment.executiveInterpretation) {
-        pdf.setFontSize(FONT.body);
+        pdf.setFontSize(FONT.body + 1);
         pdf.setTextColor(15, 23, 42);
-        const interpLines = pdf.splitTextToSize(assessment.executiveInterpretation, CONTENT.width * 0.85);
+        const interpLines = pdf.splitTextToSize(assessment.executiveInterpretation, CONTENT.width * 0.9);
         pdf.text(interpLines, MARGIN.left, y);
-        y += interpLines.length * 5 + SPACE.subsection;
+        y += interpLines.length * 4 + SPACE.section;
       }
 
-      // Maturity Delta Box
-      const deltaBoxHeight = 18;
-      pdf.setFillColor(241, 245, 249);
-      pdf.roundedRect(MARGIN.left, y, CONTENT.width, deltaBoxHeight, 3, 3, 'F');
-
-      const delta = TARGET_STATE - assessment.overallScore;
-      const deltaY = y + 11;
-      pdf.setFontSize(FONT.small);
-      pdf.setTextColor(71, 85, 105);
-      pdf.text(`Current: ${assessment.overallScore.toFixed(1)}`, MARGIN.left + 8, deltaY);
-      pdf.text(`Target for AI Scale: ${TARGET_STATE.toFixed(1)}`, MARGIN.left + 55, deltaY);
-      pdf.setTextColor(...hexToRgb(delta > 0 ? '#EA580C' : '#16A34A'));
-      pdf.text(`Delta: ${delta > 0 ? '+' : ''}${delta.toFixed(1)}`, MARGIN.left + 115, deltaY);
-      y += deltaBoxHeight + SPACE.section;
-
-      // Industry Benchmark
-      pdf.setFontSize(FONT.small);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text(`Industry Benchmark: ${INDUSTRY_BENCHMARK}  |  Your Organization: ${assessment.overallScore.toFixed(1)}`, MARGIN.left, y);
-      y += SPACE.section;
-
-      // Section: Executive Summary
+      // MIDDLE SECTION: Executive Summary
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
       pdf.text('EXECUTIVE SUMMARY', MARGIN.left, y);
@@ -577,40 +563,42 @@ export default function Report({ assessment, onRestart }) {
 
       pdf.setFontSize(FONT.body);
       pdf.setTextColor(51, 65, 85);
-      const summaryLines = pdf.splitTextToSize(assessment.executiveSummary, CONTENT.width);
+      const summaryLines = pdf.splitTextToSize(assessment.executiveSummary, CONTENT.width * 0.85);
       pdf.text(summaryLines, MARGIN.left, y);
-      y += summaryLines.length * 5 + SPACE.section;
+      y += summaryLines.length * 3.5 + SPACE.section;
 
-      // Section: Commercial Readiness Assessment
-      ensureSpace(60);
-
+      // BOTTOM SECTION: Commercial Readiness (Two Columns)
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
       pdf.text('COMMERCIAL READINESS ASSESSMENT', MARGIN.left, y);
       y += SPACE.subsection + 2;
 
-      // If unchanged column
+      const colLeftX = MARGIN.left;
+      const colRightX = MARGIN.left + COL.width + COL.gutter;
+      const commercialY = y;
+
+      // Left column: If unchanged
       pdf.setFontSize(FONT.small);
       pdf.setTextColor(220, 38, 38);
-      pdf.text('If maturity remains unchanged:', MARGIN.left, y);
-      y += SPACE.paragraph + 2;
+      pdf.text('If maturity remains unchanged:', colLeftX, commercialY);
 
+      pdf.setFontSize(FONT.small);
       pdf.setTextColor(71, 85, 105);
       const unchangedItems = [
         'AI initiatives scale unevenly',
         'Governance gaps increase renewal risk',
-        'Technical debt compounds across portfolio'
+        'Technical debt compounds'
       ];
+      let leftY = commercialY + 5;
       unchangedItems.forEach(item => {
-        pdf.text(`•  ${item}`, MARGIN.left + 3, y);
-        y += SPACE.paragraph;
+        pdf.text(`•  ${item}`, colLeftX + 2, leftY);
+        leftY += SPACE.paragraph + 1;
       });
-      y += SPACE.subsection;
 
-      // If advances column
+      // Right column: If advances
+      pdf.setFontSize(FONT.small);
       pdf.setTextColor(22, 163, 74);
-      pdf.text('If maturity advances to target state:', MARGIN.left, y);
-      y += SPACE.paragraph + 2;
+      pdf.text('If maturity advances to target:', colRightX, commercialY);
 
       pdf.setTextColor(71, 85, 105);
       const advancesItems = [
@@ -618,21 +606,22 @@ export default function Report({ assessment, onRestart }) {
         'Reduced audit exposure',
         'Accelerated feature velocity'
       ];
+      let rightY = commercialY + 5;
       advancesItems.forEach(item => {
-        pdf.text(`•  ${item}`, MARGIN.left + 3, y);
-        y += SPACE.paragraph;
+        pdf.text(`•  ${item}`, colRightX + 2, rightY);
+        rightY += SPACE.paragraph + 1;
       });
 
       addFooter();
 
-      // ===== PAGE 3: LAYER BREAKDOWN =====
+      // ===== PAGE 3: MATURITY BY LAYER (2x2 Grid) =====
       pdf.addPage();
       y = MARGIN.top;
 
       pdf.setFontSize(FONT.h2);
       pdf.setTextColor(15, 23, 42);
-      pdf.text('Layer Breakdown', MARGIN.left, y);
-      y += SPACE.section + 8;
+      pdf.text('Maturity by Layer', MARGIN.left, y);
+      y += SPACE.section + 6;
 
       const layers = [
         { key: 'platformServices', label: 'Platform Services' },
@@ -641,189 +630,307 @@ export default function Report({ assessment, onRestart }) {
         { key: 'productExecution', label: 'Product & Client Execution' },
       ];
 
+      const gridCellWidth = COL.width;
+      const gridCellHeight = 52;
+      const gridGap = 6;
+
       layers.forEach((layer, index) => {
         const score = assessment.layerScores[layer.key];
         const colors = getMaturityColors(score);
         const analysis = assessment.layerAnalysis?.[layer.key];
 
-        // Estimate section height for page break check
-        const sectionHeight = analysis ? 55 : 25;
-        ensureSpace(sectionHeight);
+        // Calculate grid position (2x2)
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        const cellX = MARGIN.left + col * (gridCellWidth + gridGap);
+        const cellY = y + row * (gridCellHeight + gridGap);
 
-        // Layer header
+        // Cell background
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(cellX, cellY, gridCellWidth, gridCellHeight, 2, 2, 'F');
+
+        let innerY = cellY + 6;
+
+        // Layer name and score on same line
         pdf.setFontSize(FONT.h3);
         pdf.setTextColor(15, 23, 42);
-        pdf.text(layer.label, MARGIN.left, y);
+        pdf.text(layer.label, cellX + 5, innerY);
 
+        pdf.setFontSize(FONT.h3);
         pdf.setTextColor(...hexToRgb(colors.text));
-        pdf.text(`${score.toFixed(1)} (${getMaturityLabel(score)})`, PAGE.width - MARGIN.right, y, { align: 'right' });
-        y += SPACE.subsection;
+        pdf.text(score.toFixed(1), cellX + gridCellWidth - 5, innerY, { align: 'right' });
+        innerY += 5;
+
+        // Status badge
+        pdf.setFillColor(...hexToRgb(colors.text));
+        pdf.roundedRect(cellX + 5, innerY, 20, 4, 2, 2, 'F');
+        pdf.setFontSize(6);
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(getMaturityLabel(score), cellX + 15, innerY + 3, { align: 'center' });
 
         // Progress bar
-        drawProgressBar(MARGIN.left, y, CONTENT.width, score, colors);
-        y += SPACE.subsection + 2;
+        drawProgressBar(cellX + 28, innerY + 0.5, gridCellWidth - 38, score, colors);
+        innerY += 8;
 
-        // Signal, Risk, Impact
+        // Signal, Risk, Impact (compact)
         if (analysis) {
-          pdf.setFontSize(FONT.small);
+          pdf.setFontSize(FONT.label);
+          const textWidth = gridCellWidth - 10;
 
           // Signal
-          pdf.setTextColor(15, 23, 42);
-          pdf.text('Signal:', MARGIN.left, y);
+          pdf.setTextColor(100, 116, 139);
+          pdf.text('Signal:', cellX + 5, innerY);
           pdf.setTextColor(71, 85, 105);
-          const signalLines = pdf.splitTextToSize(analysis.signal, CONTENT.width - 18);
-          pdf.text(signalLines, MARGIN.left + 18, y);
-          y += signalLines.length * 4 + SPACE.paragraph;
+          const signalText = pdf.splitTextToSize(analysis.signal, textWidth - 15)[0];
+          pdf.text(signalText, cellX + 20, innerY);
+          innerY += SPACE.paragraph + 1;
 
           // Risk
           pdf.setTextColor(220, 38, 38);
-          pdf.text('Risk:', MARGIN.left, y);
+          pdf.text('Risk:', cellX + 5, innerY);
           pdf.setTextColor(71, 85, 105);
-          const riskLines = pdf.splitTextToSize(analysis.riskExposure, CONTENT.width - 14);
-          pdf.text(riskLines, MARGIN.left + 14, y);
-          y += riskLines.length * 4 + SPACE.paragraph;
+          const riskText = pdf.splitTextToSize(analysis.riskExposure, textWidth - 12)[0];
+          pdf.text(riskText, cellX + 17, innerY);
+          innerY += SPACE.paragraph + 1;
 
           // Impact
           pdf.setTextColor(22, 163, 74);
-          pdf.text('Impact:', MARGIN.left, y);
+          pdf.text('Impact:', cellX + 5, innerY);
           pdf.setTextColor(71, 85, 105);
-          const impactLines = pdf.splitTextToSize(analysis.commercialImpact, CONTENT.width - 18);
-          pdf.text(impactLines, MARGIN.left + 18, y);
-          y += impactLines.length * 4;
+          const impactText = pdf.splitTextToSize(analysis.commercialImpact, textWidth - 18)[0];
+          pdf.text(impactText, cellX + 22, innerY);
         }
-
-        // Section divider spacing
-        y += SPACE.section;
       });
 
       addFooter();
 
-      // ===== PAGE 4: STRATEGIC RECOMMENDATIONS =====
+      // ===== PAGE 4: STRATEGIC PRIORITIES (Two-Column) =====
       pdf.addPage();
       y = MARGIN.top;
 
       pdf.setFontSize(FONT.h2);
       pdf.setTextColor(15, 23, 42);
-      pdf.text('Strategic Recommendations', MARGIN.left, y);
-      y += SPACE.section + 8;
+      pdf.text('Strategic Priorities', MARGIN.left, y);
+      y += SPACE.section + 6;
 
-      assessment.recommendations.forEach((rec, index) => {
-        // Calculate recommendation block height
+      const priorityHeight = 70;
+      const recs = assessment.recommendations;
+
+      // Left column: Priority 01 and 02
+      let leftPriorityY = y;
+      [0, 1].forEach((index) => {
+        if (!recs[index]) return;
+        const rec = recs[index];
         const actionText = rec.strategicAction || rec.description;
-        const riskText = rec.riskOfInaction || 'Continued operational friction and missed optimization opportunities.';
+        const riskText = rec.riskOfInaction || 'Operational friction persists.';
         const outcomeText = rec.expectedOutcome || rec.impact;
 
-        const blockHeight = 70; // Conservative estimate
-        ensureSpace(blockHeight);
-
-        // Number circle
-        pdf.setFillColor(15, 23, 42);
-        pdf.circle(MARGIN.left + 5, y + 4, 5, 'F');
-        pdf.setFontSize(10);
-        pdf.setTextColor(255, 255, 255);
-        pdf.text(String(index + 1), MARGIN.left + 5, y + 5.5, { align: 'center' });
+        // Priority number (small inline)
+        pdf.setFontSize(FONT.label);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(`0${index + 1}`, MARGIN.left, leftPriorityY);
 
         // Title
         pdf.setFontSize(FONT.h3);
         pdf.setTextColor(15, 23, 42);
-        pdf.text(rec.title, MARGIN.left + 16, y + 5);
-        y += SPACE.section + 2;
+        pdf.text(rec.title, MARGIN.left + 8, leftPriorityY);
+        leftPriorityY += SPACE.subsection;
 
         // Strategic Action
-        pdf.setFontSize(FONT.small);
+        pdf.setFontSize(FONT.label);
         pdf.setTextColor(100, 116, 139);
-        pdf.text('Strategic Action', MARGIN.left, y);
-        y += SPACE.paragraph + 1;
+        pdf.text('Strategic Action', MARGIN.left, leftPriorityY);
+        leftPriorityY += SPACE.paragraph;
 
+        pdf.setFontSize(FONT.small);
         pdf.setTextColor(51, 65, 85);
-        const actionLines = pdf.splitTextToSize(actionText, CONTENT.width);
-        pdf.text(actionLines, MARGIN.left, y);
-        y += actionLines.length * 4 + SPACE.subsection;
+        const actionLines = pdf.splitTextToSize(actionText, COL.width - 5);
+        pdf.text(actionLines.slice(0, 2), MARGIN.left, leftPriorityY);
+        leftPriorityY += Math.min(actionLines.length, 2) * 3.5 + SPACE.paragraph;
 
         // Risk of Inaction
+        pdf.setFontSize(FONT.label);
         pdf.setTextColor(220, 38, 38);
-        pdf.text('Risk of Inaction', MARGIN.left, y);
-        y += SPACE.paragraph + 1;
+        pdf.text('Risk of Inaction', MARGIN.left, leftPriorityY);
+        leftPriorityY += SPACE.paragraph;
 
+        pdf.setFontSize(FONT.small);
         pdf.setTextColor(51, 65, 85);
-        const riskLines = pdf.splitTextToSize(riskText, CONTENT.width);
-        pdf.text(riskLines, MARGIN.left, y);
-        y += riskLines.length * 4 + SPACE.subsection;
+        const riskLine = pdf.splitTextToSize(riskText, COL.width - 5)[0];
+        pdf.text(riskLine, MARGIN.left, leftPriorityY);
+        leftPriorityY += SPACE.paragraph + 2;
 
-        // Expected Outcome
+        // Commercial Outcome
+        pdf.setFontSize(FONT.label);
         pdf.setTextColor(22, 163, 74);
-        pdf.text('Expected Commercial Outcome', MARGIN.left, y);
-        y += SPACE.paragraph + 1;
+        pdf.text('Commercial Outcome', MARGIN.left, leftPriorityY);
+        leftPriorityY += SPACE.paragraph;
 
+        pdf.setFontSize(FONT.small);
         pdf.setTextColor(51, 65, 85);
-        const outcomeLines = pdf.splitTextToSize(outcomeText, CONTENT.width);
-        pdf.text(outcomeLines, MARGIN.left, y);
-        y += outcomeLines.length * 4 + SPACE.section + 4;
+        const outcomeLine = pdf.splitTextToSize(outcomeText, COL.width - 5)[0];
+        pdf.text(outcomeLine, MARGIN.left, leftPriorityY);
+        leftPriorityY += SPACE.section + 8;
       });
+
+      // Right column: Priority 03
+      if (recs[2]) {
+        const rec = recs[2];
+        const actionText = rec.strategicAction || rec.description;
+        const riskText = rec.riskOfInaction || 'Operational friction persists.';
+        const outcomeText = rec.expectedOutcome || rec.impact;
+        let rightPriorityY = y;
+        const rightX = MARGIN.left + COL.width + COL.gutter;
+
+        // Priority number
+        pdf.setFontSize(FONT.label);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text('03', rightX, rightPriorityY);
+
+        // Title
+        pdf.setFontSize(FONT.h3);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(rec.title, rightX + 8, rightPriorityY);
+        rightPriorityY += SPACE.subsection;
+
+        // Strategic Action
+        pdf.setFontSize(FONT.label);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text('Strategic Action', rightX, rightPriorityY);
+        rightPriorityY += SPACE.paragraph;
+
+        pdf.setFontSize(FONT.small);
+        pdf.setTextColor(51, 65, 85);
+        const actionLines = pdf.splitTextToSize(actionText, COL.width - 5);
+        pdf.text(actionLines.slice(0, 2), rightX, rightPriorityY);
+        rightPriorityY += Math.min(actionLines.length, 2) * 3.5 + SPACE.paragraph;
+
+        // Risk of Inaction
+        pdf.setFontSize(FONT.label);
+        pdf.setTextColor(220, 38, 38);
+        pdf.text('Risk of Inaction', rightX, rightPriorityY);
+        rightPriorityY += SPACE.paragraph;
+
+        pdf.setFontSize(FONT.small);
+        pdf.setTextColor(51, 65, 85);
+        const riskLine = pdf.splitTextToSize(riskText, COL.width - 5)[0];
+        pdf.text(riskLine, rightX, rightPriorityY);
+        rightPriorityY += SPACE.paragraph + 2;
+
+        // Commercial Outcome
+        pdf.setFontSize(FONT.label);
+        pdf.setTextColor(22, 163, 74);
+        pdf.text('Commercial Outcome', rightX, rightPriorityY);
+        rightPriorityY += SPACE.paragraph;
+
+        pdf.setFontSize(FONT.small);
+        pdf.setTextColor(51, 65, 85);
+        const outcomeLine = pdf.splitTextToSize(outcomeText, COL.width - 5)[0];
+        pdf.text(outcomeLine, rightX, rightPriorityY);
+      }
 
       addFooter();
 
-      // ===== PAGE 5: IMPLEMENTATION ROADMAP =====
+      // ===== PAGE 5: TRANSFORMATION ROADMAP (Two-Column) =====
       pdf.addPage();
       y = MARGIN.top;
 
       pdf.setFontSize(FONT.h2);
       pdf.setTextColor(15, 23, 42);
-      pdf.text('Implementation Roadmap Overview', MARGIN.left, y);
-      y += SPACE.section + 8;
+      pdf.text('Transformation Roadmap', MARGIN.left, y);
+      y += SPACE.section + 6;
 
       const phases = [
         {
-          title: 'Phase 1 (0-3 Months)',
-          items: ['Governance foundation establishment', 'Access control standardization', 'Cost attribution framework']
+          title: 'Phase 1: Foundation (0-3 mo)',
+          items: ['Governance framework', 'Access control standardization', 'Cost attribution model']
         },
         {
-          title: 'Phase 2 (3-6 Months)',
-          items: ['Architecture policy institutionalization', 'CI/CD convergence across teams', 'Observability baseline deployment']
+          title: 'Phase 2: Integration (3-6 mo)',
+          items: ['Architecture policy rollout', 'CI/CD convergence', 'Observability baseline']
         },
         {
-          title: 'Phase 3 (6-12 Months)',
-          items: ['AI workload scaling enablement', 'Platform observability expansion', 'Enterprise integration maturation']
+          title: 'Phase 3: Scale (6-12 mo)',
+          items: ['AI workload enablement', 'Platform expansion', 'Enterprise integration']
         }
       ];
 
+      // Left column: Phases
+      let phaseY = y;
       phases.forEach((phase) => {
-        ensureSpace(40);
-
         pdf.setFontSize(FONT.h3);
         pdf.setTextColor(15, 23, 42);
-        pdf.text(phase.title, MARGIN.left, y);
-        y += SPACE.subsection;
+        pdf.text(phase.title, MARGIN.left, phaseY);
+        phaseY += SPACE.subsection;
 
         pdf.setFontSize(FONT.small);
         pdf.setTextColor(71, 85, 105);
         phase.items.forEach((item) => {
-          pdf.text(`•  ${item}`, MARGIN.left + 4, y);
-          y += SPACE.paragraph + 1;
+          pdf.text(`•  ${item}`, MARGIN.left + 3, phaseY);
+          phaseY += SPACE.paragraph + 1;
         });
-        y += SPACE.section;
+        phaseY += SPACE.section;
       });
 
-      // Primary Investment Domain box
-      y += SPACE.subsection;
-      const domainBoxHeight = 16;
-      pdf.setFillColor(241, 245, 249);
-      pdf.roundedRect(MARGIN.left, y, CONTENT.width, domainBoxHeight, 3, 3, 'F');
+      // Right column: Key metrics and statement
+      const rightX = MARGIN.left + COL.width + COL.gutter;
+      let rightY = y;
+
+      // Primary Investment Domain
+      pdf.setFontSize(FONT.label);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('PRIMARY INVESTMENT DOMAIN', rightX, rightY);
+      rightY += SPACE.subsection;
+
+      pdf.setFontSize(FONT.body);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(lowestLayer.label, rightX, rightY);
+      rightY += SPACE.section;
+
+      // Transformation Window
+      pdf.setFontSize(FONT.label);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('TRANSFORMATION WINDOW', rightX, rightY);
+      rightY += SPACE.subsection;
+
+      pdf.setFontSize(FONT.body);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('6-12 months', rightX, rightY);
+      rightY += SPACE.section;
+
+      // Key Outcome Metrics
+      pdf.setFontSize(FONT.label);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('KEY OUTCOME METRICS', rightX, rightY);
+      rightY += SPACE.subsection;
 
       pdf.setFontSize(FONT.small);
       pdf.setTextColor(71, 85, 105);
-      pdf.text(`Primary Investment Domain: ${lowestLayer.label}`, MARGIN.left + 8, y + 10);
-      pdf.text('Transformation Window: 6-12 months', PAGE.width - MARGIN.right - 8, y + 10, { align: 'right' });
-      y += domainBoxHeight + SPACE.section * 2;
+      const metrics = [
+        'Platform deployment frequency',
+        'Mean time to recovery',
+        'AI workload scalability index',
+        'Governance compliance rate'
+      ];
+      metrics.forEach(metric => {
+        pdf.text(`•  ${metric}`, rightX + 2, rightY);
+        rightY += SPACE.paragraph + 1;
+      });
+      rightY += SPACE.section;
 
-      // Closing statement
-      ensureSpace(20);
-      pdf.setFontSize(FONT.body);
-      pdf.setTextColor(15, 23, 42);
-      const closingText = 'Platform maturity is not a tooling initiative. It is an operating model transformation.';
-      const closingLines = pdf.splitTextToSize(closingText, CONTENT.width * 0.8);
-      const closingX = MARGIN.left + (CONTENT.width - CONTENT.width * 0.8) / 2;
-      pdf.text(closingLines, closingX, y);
+      // Operating Model Statement (integrated, not isolated)
+      pdf.setFontSize(FONT.label);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('OPERATING MODEL PERSPECTIVE', rightX, rightY);
+      rightY += SPACE.subsection;
+
+      pdf.setFontSize(FONT.small);
+      pdf.setTextColor(51, 65, 85);
+      const statementLines = pdf.splitTextToSize(
+        'Platform maturity is not a tooling initiative. It is an operating model transformation that enables sustainable enterprise scale.',
+        COL.width - 5
+      );
+      pdf.text(statementLines, rightX, rightY);
 
       addFooter();
 
