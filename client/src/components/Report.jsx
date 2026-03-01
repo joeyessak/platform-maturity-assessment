@@ -395,7 +395,7 @@ export default function Report({ assessment, onRestart }) {
       };
 
       const MARGIN = { top: 20, bottom: 20, left: 20, right: 20 };
-      const FOOTER_HEIGHT = 8;
+      const FOOTER_HEIGHT = 10;
       const SAFE_BOTTOM = PAGE.height - MARGIN.bottom - FOOTER_HEIGHT;
       const CONTENT_WIDTH = PAGE.width - MARGIN.left - MARGIN.right;
 
@@ -404,24 +404,36 @@ export default function Report({ assessment, onRestart }) {
         gutter: 6,
       };
 
-      const SPACE = { section: 10, subsection: 6, paragraph: 4, cardPad: 6 };
+      const SPACE = { section: 10, subsection: 6, paragraph: 4, cardPad: 5 };
       const FONT = { h2: 14, h3: 10, body: 9, small: 8, label: 7 };
+      const LINE_HEIGHT = { body: 3.8, small: 3.2, label: 2.8 };
 
       let y = MARGIN.top;
 
-      // ===== LAYOUT HELPERS =====
+      // ===== REUSABLE LAYOUT HELPERS =====
       const hexToRgb = (hex) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [0, 0, 0];
       };
 
-      const wrapText = (text, maxWidth) => {
+      // Wrap text into lines that fit within maxWidth
+      const wrapLines = (text, maxWidth) => {
         if (!text) return [];
-        return pdf.splitTextToSize(text, maxWidth);
+        return pdf.splitTextToSize(String(text), maxWidth);
       };
 
-      const getTextHeight = (lines, fontSize, lineHeightRatio = 1.3) => {
-        return lines.length * fontSize * lineHeightRatio * 0.35; // Convert pt to mm approx
+      // Measure height of wrapped lines
+      const measureWrappedHeight = (lines, lineHeight) => {
+        return lines.length * lineHeight;
+      };
+
+      // Draw wrapped text line by line, returns final Y position
+      const drawWrappedText = (lines, x, startY, lineHeight, maxLines = null) => {
+        const linesToDraw = maxLines ? lines.slice(0, maxLines) : lines;
+        linesToDraw.forEach((line, i) => {
+          pdf.text(line, x, startY + i * lineHeight);
+        });
+        return startY + linesToDraw.length * lineHeight;
       };
 
       const addFooter = () => {
@@ -439,11 +451,6 @@ export default function Report({ assessment, onRestart }) {
           return true;
         }
         return false;
-      };
-
-      const truncate = (text, maxChars) => {
-        if (!text || text.length <= maxChars) return text || '';
-        return text.substring(0, maxChars - 2) + '…';
       };
 
       // Draw ring (donut chart)
@@ -517,19 +524,21 @@ export default function Report({ assessment, onRestart }) {
       const overallColors = getMaturityColors(assessment.overallScore);
       const delta = TARGET_STATE - assessment.overallScore;
 
-      // Score card - compute height dynamically
-      const interpText = truncate(assessment.executiveInterpretation, 140);
-      const interpLines = wrapText(interpText, CONTENT_WIDTH - 65);
-      const scoreCardHeight = Math.max(50, 24 + getTextHeight(interpLines, FONT.body) + 18);
+      // Score card - compute height dynamically from wrapped interpretation
+      const interpTextWidth = CONTENT_WIDTH - 55;
+      pdf.setFontSize(FONT.body);
+      const interpLines = wrapLines(assessment.executiveInterpretation || '', interpTextWidth);
+      const interpHeight = measureWrappedHeight(interpLines, LINE_HEIGHT.body);
+      const scoreCardHeight = Math.max(52, SPACE.cardPad + 8 + interpHeight + 20);
 
       ensureSpace(scoreCardHeight);
       drawCard(MARGIN.left, y, CONTENT_WIDTH, scoreCardHeight);
 
       // Ring
-      const ringX = MARGIN.left + 25;
+      const ringX = MARGIN.left + 22;
       const ringY = y + scoreCardHeight / 2;
-      drawRing(ringX, ringY, 15, assessment.overallScore, 3.5);
-      pdf.setFontSize(16);
+      drawRing(ringX, ringY, 14, assessment.overallScore, 3.5);
+      pdf.setFontSize(15);
       pdf.setTextColor(...hexToRgb(overallColors.text));
       pdf.text(assessment.overallScore.toFixed(1), ringX, ringY + 2, { align: 'center' });
       pdf.setFontSize(6);
@@ -537,20 +546,19 @@ export default function Report({ assessment, onRestart }) {
       pdf.text('of 5', ringX, ringY + 7, { align: 'center' });
 
       // Content right of ring
-      const textX = MARGIN.left + 50;
+      const textX = MARGIN.left + 45;
       let innerY = y + SPACE.cardPad;
       drawChip(textX, innerY, getMaturityLabel(assessment.overallScore), overallColors);
       innerY += 8;
 
+      // Executive Interpretation - fully wrapped, no truncation
       pdf.setFontSize(FONT.body);
       pdf.setTextColor(15, 23, 42);
-      pdf.text(interpLines, textX, innerY);
-      innerY += getTextHeight(interpLines, FONT.body);
+      innerY = drawWrappedText(interpLines, textX, innerY, LINE_HEIGHT.body);
 
-      // Delta row
-      const deltaY = y + scoreCardHeight - 12;
+      // Delta row at bottom of card
+      const deltaY = y + scoreCardHeight - 10;
       pdf.setFontSize(FONT.label);
-      pdf.setTextColor(100, 116, 139);
       const deltaItems = [
         { label: 'Current', value: assessment.overallScore.toFixed(1), color: [15, 23, 42] },
         { label: 'Target', value: TARGET_STATE.toFixed(1), color: [22, 163, 74] },
@@ -558,33 +566,34 @@ export default function Report({ assessment, onRestart }) {
         { label: 'Benchmark', value: INDUSTRY_BENCHMARK.toString(), color: [100, 116, 139] },
       ];
       deltaItems.forEach((item, i) => {
-        const dx = textX + i * 32;
+        const dx = textX + i * 30;
         pdf.setTextColor(100, 116, 139);
         pdf.text(item.label, dx, deltaY);
         pdf.setFontSize(FONT.h3);
         pdf.setTextColor(...item.color);
-        pdf.text(item.value, dx, deltaY + 5);
+        pdf.text(item.value, dx, deltaY + 4);
         pdf.setFontSize(FONT.label);
       });
 
       y += scoreCardHeight + SPACE.section;
 
-      // Executive Summary
-      ensureSpace(25);
+      // Executive Summary - fully wrapped, no truncation
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
       pdf.text('EXECUTIVE SUMMARY', MARGIN.left, y);
       y += SPACE.subsection;
 
-      const summaryText = truncate(assessment.executiveSummary, 280);
-      const summaryLines = wrapText(summaryText, CONTENT_WIDTH);
       pdf.setFontSize(FONT.body);
+      const summaryLines = wrapLines(assessment.executiveSummary || '', CONTENT_WIDTH);
+      const summaryHeight = measureWrappedHeight(summaryLines, LINE_HEIGHT.body);
+      ensureSpace(summaryHeight + SPACE.section);
       pdf.setTextColor(51, 65, 85);
-      pdf.text(summaryLines, MARGIN.left, y);
-      y += getTextHeight(summaryLines, FONT.body) + SPACE.section;
+      y = drawWrappedText(summaryLines, MARGIN.left, y, LINE_HEIGHT.body);
+      y += SPACE.section;
 
       // Commercial Readiness
-      ensureSpace(30);
+      const bulletHeight = 22;
+      ensureSpace(bulletHeight);
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
       pdf.text('COMMERCIAL READINESS', MARGIN.left, y);
@@ -604,12 +613,12 @@ export default function Report({ assessment, onRestart }) {
         ['Governance gaps persist', 'Reduced audit exposure'],
         ['Tech debt compounds', 'Faster feature velocity'],
       ];
-      let bulletY = y + 5;
+      let bulletY = y + 4;
       pdf.setTextColor(71, 85, 105);
       bullets.forEach(([left, right]) => {
         pdf.text(`•  ${left}`, colL + 2, bulletY);
         pdf.text(`•  ${right}`, colR + 2, bulletY);
-        bulletY += 4;
+        bulletY += LINE_HEIGHT.small;
       });
 
       addFooter();
@@ -632,34 +641,57 @@ export default function Report({ assessment, onRestart }) {
 
       const cellW = COL.width;
       const cellGap = 5;
+      const labelAreaWidth = cellW - 32; // space after ring for text
 
-      // Pre-compute card heights based on content
-      const computeLayerCardHeight = (analysis) => {
-        const baseHeight = 28; // ring area + header
-        if (!analysis) return baseHeight;
-        const lineHeight = 4;
-        return baseHeight + 3 * lineHeight + 6; // 3 lines + padding
+      // Pre-compute card heights based on WRAPPED content
+      const computeLayerCardHeight = (layerKey) => {
+        const analysis = assessment.layerAnalysis?.[layerKey];
+        const headerHeight = 24; // ring area + title + chip
+        if (!analysis) return headerHeight + SPACE.cardPad * 2;
+
+        pdf.setFontSize(FONT.label);
+        const signalLines = wrapLines(analysis.signal || '', labelAreaWidth - 14);
+        const riskLines = wrapLines(analysis.riskExposure || '', labelAreaWidth - 12);
+        const impactLines = wrapLines(analysis.commercialImpact || '', labelAreaWidth - 15);
+
+        const textHeight =
+          measureWrappedHeight(signalLines.slice(0, 2), LINE_HEIGHT.label) +
+          measureWrappedHeight(riskLines.slice(0, 2), LINE_HEIGHT.label) +
+          measureWrappedHeight(impactLines.slice(0, 2), LINE_HEIGHT.label) +
+          6; // spacing between sections
+
+        return headerHeight + textHeight + SPACE.cardPad * 2;
       };
 
-      const row1Height = Math.max(
-        computeLayerCardHeight(assessment.layerAnalysis?.platformServices),
-        computeLayerCardHeight(assessment.layerAnalysis?.cloudGovernance)
-      );
-      const row2Height = Math.max(
-        computeLayerCardHeight(assessment.layerAnalysis?.portfolioArchitecture),
-        computeLayerCardHeight(assessment.layerAnalysis?.productExecution)
-      );
+      const layerHeights = layers.map(l => computeLayerCardHeight(l.key));
+      const row1Height = Math.max(layerHeights[0], layerHeights[1]);
+      const row2Height = Math.max(layerHeights[2], layerHeights[3]);
+      const totalGridHeight = row1Height + row2Height + cellGap;
+
+      // Check if 2x2 grid fits; if not, render 1 column
+      const use2x2 = (y + totalGridHeight) <= SAFE_BOTTOM;
 
       layers.forEach((layer, idx) => {
         const score = assessment.layerScores[layer.key];
         const colors = getMaturityColors(score);
         const analysis = assessment.layerAnalysis?.[layer.key];
 
-        const col = idx % 2;
-        const row = Math.floor(idx / 2);
-        const cellH = row === 0 ? row1Height : row2Height;
-        const cellX = MARGIN.left + col * (cellW + cellGap);
-        const cellY = y + row * (cellH + cellGap);
+        let cellX, cellY, cellH;
+
+        if (use2x2) {
+          const col = idx % 2;
+          const row = Math.floor(idx / 2);
+          cellH = row === 0 ? row1Height : row2Height;
+          cellX = MARGIN.left + col * (cellW + cellGap);
+          cellY = y + row * (cellH + cellGap);
+        } else {
+          // 1 column layout
+          cellH = layerHeights[idx];
+          cellX = MARGIN.left;
+          ensureSpace(cellH + cellGap);
+          cellY = y;
+          y += cellH + cellGap;
+        }
 
         drawCard(cellX, cellY, cellW, cellH);
 
@@ -677,136 +709,149 @@ export default function Report({ assessment, onRestart }) {
         pdf.setFontSize(FONT.h3);
         pdf.setTextColor(15, 23, 42);
         pdf.text(layer.label, lblX, lblY);
-        lblY += 6;
+        lblY += 5;
         drawChip(lblX, lblY, getMaturityLabel(score), colors);
-        lblY += 9;
+        lblY += 8;
 
-        // Signal / Risk / Impact (strict 50 char limit per line)
+        // Signal / Risk / Impact - wrapped with maxLines=2
         if (analysis) {
           pdf.setFontSize(FONT.label);
-          const maxW = cellW - 32;
 
+          // Signal
+          const signalLines = wrapLines(analysis.signal || '', labelAreaWidth - 14);
           pdf.setTextColor(100, 116, 139);
           pdf.text('Signal:', lblX, lblY);
           pdf.setTextColor(71, 85, 105);
-          pdf.text(truncate(analysis.signal, 50), lblX + 12, lblY);
-          lblY += 4;
+          lblY = drawWrappedText(signalLines, lblX + 13, lblY, LINE_HEIGHT.label, 2);
+          lblY += 1;
 
+          // Risk
+          const riskLines = wrapLines(analysis.riskExposure || '', labelAreaWidth - 12);
           pdf.setTextColor(220, 38, 38);
           pdf.text('Risk:', lblX, lblY);
           pdf.setTextColor(71, 85, 105);
-          pdf.text(truncate(analysis.riskExposure, 50), lblX + 10, lblY);
-          lblY += 4;
+          lblY = drawWrappedText(riskLines, lblX + 10, lblY, LINE_HEIGHT.label, 2);
+          lblY += 1;
 
+          // Impact
+          const impactLines = wrapLines(analysis.commercialImpact || '', labelAreaWidth - 15);
           pdf.setTextColor(22, 163, 74);
           pdf.text('Impact:', lblX, lblY);
           pdf.setTextColor(71, 85, 105);
-          pdf.text(truncate(analysis.commercialImpact, 50), lblX + 13, lblY);
+          drawWrappedText(impactLines, lblX + 14, lblY, LINE_HEIGHT.label, 2);
         }
       });
 
-      y += row1Height + row2Height + cellGap;
+      if (use2x2) {
+        y += totalGridHeight;
+      }
       addFooter();
 
       // ===== PAGE 4: PRIORITIES + ROADMAP =====
       pdf.addPage();
       y = MARGIN.top;
 
-      // Strategic Priorities
+      // Strategic Priorities - stacked vertically for more space
       pdf.setFontSize(FONT.h2);
       pdf.setTextColor(15, 23, 42);
       pdf.text('Strategic Priorities', MARGIN.left, y);
       y += SPACE.section;
 
       const recs = assessment.recommendations.slice(0, 3);
-      const prioW = (CONTENT_WIDTH - 8) / 3;
 
-      // Compute priority card height from content
-      const computePrioHeight = (rec) => {
-        const action = truncate(rec.strategicAction || rec.description, 70);
-        const actionLines = wrapText(action, prioW - 10);
-        return 42 + Math.max(0, (actionLines.length - 2) * 3);
+      // Compute each priority card height based on wrapped content
+      const computePriorityHeight = (rec) => {
+        pdf.setFontSize(FONT.label);
+        const actionLines = wrapLines(rec.strategicAction || rec.description || '', CONTENT_WIDTH - 20);
+        const riskLines = wrapLines(rec.riskOfInaction || '', CONTENT_WIDTH - 20);
+        const outcomeLines = wrapLines(rec.expectedOutcome || rec.impact || '', CONTENT_WIDTH - 20);
+
+        const actionH = measureWrappedHeight(actionLines.slice(0, 3), LINE_HEIGHT.label);
+        const riskH = measureWrappedHeight(riskLines.slice(0, 2), LINE_HEIGHT.label);
+        const outcomeH = measureWrappedHeight(outcomeLines.slice(0, 2), LINE_HEIGHT.label);
+
+        return 12 + actionH + 4 + riskH + 4 + outcomeH + SPACE.cardPad * 2;
       };
-      const prioH = Math.max(...recs.map(computePrioHeight), 46);
-
-      ensureSpace(prioH + 10);
 
       recs.forEach((rec, i) => {
-        const cx = MARGIN.left + i * (prioW + 4);
-        drawCard(cx, y, prioW, prioH);
+        const cardH = computePriorityHeight(rec);
+        ensureSpace(cardH + 4);
+
+        drawCard(MARGIN.left, y, CONTENT_WIDTH, cardH);
 
         let iy = y + SPACE.cardPad;
 
-        // Number pill
+        // Number pill + Title
         pdf.setFillColor(15, 23, 42);
-        pdf.roundedRect(cx + 4, iy - 2, 8, 5, 2, 2, 'F');
-        pdf.setFontSize(7);
+        pdf.roundedRect(MARGIN.left + 5, iy - 1, 6, 4, 2, 2, 'F');
+        pdf.setFontSize(6);
         pdf.setTextColor(255, 255, 255);
-        pdf.text(`${i + 1}`, cx + 8, iy + 1.5, { align: 'center' });
+        pdf.text(`${i + 1}`, MARGIN.left + 8, iy + 1.5, { align: 'center' });
 
-        // Title
         pdf.setFontSize(FONT.small);
         pdf.setTextColor(15, 23, 42);
-        pdf.text(truncate(rec.title, 28), cx + 15, iy + 1);
-        iy += 8;
+        const titleLines = wrapLines(rec.title || '', CONTENT_WIDTH - 25);
+        pdf.text(titleLines[0] || '', MARGIN.left + 14, iy + 1);
+        iy += 7;
 
-        // Action
+        // Action - wrapped
         pdf.setFontSize(FONT.label);
         pdf.setTextColor(100, 116, 139);
-        pdf.text('Action', cx + 4, iy);
-        iy += 3;
+        pdf.text('Action:', MARGIN.left + 5, iy);
         pdf.setTextColor(51, 65, 85);
-        const actionText = truncate(rec.strategicAction || rec.description, 70);
-        const actionLines = wrapText(actionText, prioW - 10);
-        pdf.text(actionLines.slice(0, 2), cx + 4, iy);
-        iy += Math.min(actionLines.length, 2) * 3 + 3;
+        const actionLines = wrapLines(rec.strategicAction || rec.description || '', CONTENT_WIDTH - 30);
+        iy = drawWrappedText(actionLines, MARGIN.left + 18, iy, LINE_HEIGHT.label, 3);
+        iy += 2;
 
-        // Risk
+        // Risk - wrapped
         pdf.setTextColor(220, 38, 38);
-        pdf.text('Risk', cx + 4, iy);
-        iy += 3;
+        pdf.text('Risk:', MARGIN.left + 5, iy);
         pdf.setTextColor(71, 85, 105);
-        pdf.text(truncate(rec.riskOfInaction || 'Operational friction.', 45), cx + 4, iy);
-        iy += 5;
+        const riskLines = wrapLines(rec.riskOfInaction || '', CONTENT_WIDTH - 30);
+        iy = drawWrappedText(riskLines, MARGIN.left + 15, iy, LINE_HEIGHT.label, 2);
+        iy += 2;
 
-        // Outcome
+        // Outcome - wrapped
         pdf.setTextColor(22, 163, 74);
-        pdf.text('Outcome', cx + 4, iy);
-        iy += 3;
+        pdf.text('Outcome:', MARGIN.left + 5, iy);
         pdf.setTextColor(71, 85, 105);
-        pdf.text(truncate(rec.expectedOutcome || rec.impact, 45), cx + 4, iy);
+        const outcomeLines = wrapLines(rec.expectedOutcome || rec.impact || '', CONTENT_WIDTH - 30);
+        drawWrappedText(outcomeLines, MARGIN.left + 20, iy, LINE_HEIGHT.label, 2);
+
+        y += cardH + 4;
       });
 
-      y += prioH + SPACE.section + 2;
+      y += SPACE.section;
 
       // Transformation Roadmap
-      ensureSpace(60);
+      const roadmapHeight = 50;
+      ensureSpace(roadmapHeight);
+
       pdf.setFontSize(FONT.h2);
       pdf.setTextColor(15, 23, 42);
       pdf.text('Transformation Roadmap', MARGIN.left, y);
       y += SPACE.section;
 
       // Visual timeline bar
-      const timelineY = y;
-      const timelineH = 4;
+      const timelineH = 5;
       pdf.setFillColor(229, 231, 235);
-      pdf.roundedRect(MARGIN.left, timelineY, CONTENT_WIDTH, timelineH, 2, 2, 'F');
+      pdf.roundedRect(MARGIN.left, y, CONTENT_WIDTH, timelineH, 2, 2, 'F');
 
       // Phase markers
       const phaseColors = [[220, 38, 38], [251, 191, 36], [34, 197, 94]];
-      const phaseLabels = ['0-3 mo', '3-6 mo', '6-12 mo'];
+      const phaseLabels = ['0-3 months', '3-6 months', '6-12 months'];
       const phaseW = CONTENT_WIDTH / 3;
 
       phaseLabels.forEach((label, i) => {
         const px = MARGIN.left + i * phaseW;
         pdf.setFillColor(...phaseColors[i]);
-        pdf.roundedRect(px + 2, timelineY, phaseW - 4, timelineH, 2, 2, 'F');
+        pdf.roundedRect(px + 1, y, phaseW - 2, timelineH, 2, 2, 'F');
         pdf.setFontSize(6);
         pdf.setTextColor(255, 255, 255);
-        pdf.text(label, px + phaseW / 2, timelineY + 2.8, { align: 'center' });
+        pdf.text(label, px + phaseW / 2, y + 3.2, { align: 'center' });
       });
 
-      y += timelineH + 6;
+      y += timelineH + 5;
 
       // Phase cards
       const phases = [
@@ -815,41 +860,41 @@ export default function Report({ assessment, onRestart }) {
         { title: 'Scale', items: ['AI enablement', 'Platform expansion', 'Enterprise integration'] },
       ];
       const phaseCardW = (CONTENT_WIDTH - 8) / 3;
-      const phaseCardH = 32;
+      const phaseCardH = 28;
 
       phases.forEach((phase, i) => {
         const px = MARGIN.left + i * (phaseCardW + 4);
         drawCard(px, y, phaseCardW, phaseCardH);
 
-        let py = y + 5;
+        let py = y + 4;
         pdf.setFontSize(FONT.small);
         pdf.setTextColor(15, 23, 42);
-        pdf.text(phase.title, px + 5, py);
-        py += 5;
+        pdf.text(phase.title, px + 4, py);
+        py += 4;
 
         pdf.setFontSize(FONT.label);
         pdf.setTextColor(71, 85, 105);
         phase.items.forEach(item => {
-          pdf.text(`•  ${item}`, px + 5, py);
-          py += 3.5;
+          pdf.text(`•  ${item}`, px + 4, py);
+          py += LINE_HEIGHT.label;
         });
       });
 
-      y += phaseCardH + SPACE.section;
+      y += phaseCardH + SPACE.subsection;
 
-      // Key metrics + investment domain (condensed)
-      ensureSpace(18);
+      // Key metrics + investment domain
+      ensureSpace(12);
       pdf.setFontSize(FONT.label);
       pdf.setTextColor(100, 116, 139);
       pdf.text('KEY METRICS', MARGIN.left, y);
-      pdf.text('PRIMARY INVESTMENT', MARGIN.left + 90, y);
+      pdf.text('PRIMARY INVESTMENT DOMAIN', MARGIN.left + 95, y);
       y += 4;
 
       pdf.setFontSize(FONT.small);
       pdf.setTextColor(71, 85, 105);
-      pdf.text('Deployment freq • MTTR • AI scale • Compliance', MARGIN.left, y);
+      pdf.text('Deployment frequency • MTTR • AI scalability • Compliance rate', MARGIN.left, y);
       pdf.setTextColor(15, 23, 42);
-      pdf.text(`${lowestLayer.label} (${lowestLayer.score.toFixed(1)})`, MARGIN.left + 90, y);
+      pdf.text(`${lowestLayer.label} (${lowestLayer.score.toFixed(1)})`, MARGIN.left + 95, y);
 
       addFooter();
 
