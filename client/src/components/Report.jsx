@@ -427,13 +427,29 @@ export default function Report({ assessment, onRestart }) {
         return lines.length * lineHeight;
       };
 
-      // Draw wrapped text line by line, returns final Y position
+      // Draw wrapped text line by line with consistent baseline, returns final Y position
       const drawWrappedText = (lines, x, startY, lineHeight, maxLines = null) => {
         const linesToDraw = maxLines ? lines.slice(0, maxLines) : lines;
+        const wasTruncated = maxLines && lines.length > maxLines;
+
         linesToDraw.forEach((line, i) => {
-          pdf.text(line, x, startY + i * lineHeight);
+          let textToDraw = line;
+          // Add ellipsis to last line if content was truncated
+          if (wasTruncated && i === linesToDraw.length - 1) {
+            const maxWidth = pdf.internal.pageSize.getWidth() - x - 20;
+            while (pdf.getTextWidth(textToDraw + '…') > maxWidth && textToDraw.length > 0) {
+              textToDraw = textToDraw.slice(0, -1);
+            }
+            textToDraw = textToDraw.trim() + '…';
+          }
+          pdf.text(textToDraw, x, startY + i * lineHeight);
         });
         return startY + linesToDraw.length * lineHeight;
+      };
+
+      // Compute key column width for aligned key/value pairs
+      const computeKeyWidth = (keys) => {
+        return Math.max(...keys.map(k => pdf.getTextWidth(k))) + 2;
       };
 
       const addFooter = () => {
@@ -641,7 +657,13 @@ export default function Report({ assessment, onRestart }) {
 
       const cellW = COL.width;
       const cellGap = 5;
-      const labelAreaWidth = cellW - 32; // space after ring for text
+      const ringAreaWidth = 28; // space for ring on left
+      const labelAreaWidth = cellW - ringAreaWidth - SPACE.cardPad;
+
+      // Compute consistent key column width for layer cards
+      pdf.setFontSize(FONT.label);
+      const layerKeyWidth = computeKeyWidth(['Signal:', 'Risk:', 'Impact:']);
+      const layerValueWidth = labelAreaWidth - layerKeyWidth - 2;
 
       // Pre-compute card heights based on WRAPPED content
       const computeLayerCardHeight = (layerKey) => {
@@ -650,9 +672,9 @@ export default function Report({ assessment, onRestart }) {
         if (!analysis) return headerHeight + SPACE.cardPad * 2;
 
         pdf.setFontSize(FONT.label);
-        const signalLines = wrapLines(analysis.signal || '', labelAreaWidth - 14);
-        const riskLines = wrapLines(analysis.riskExposure || '', labelAreaWidth - 12);
-        const impactLines = wrapLines(analysis.commercialImpact || '', labelAreaWidth - 15);
+        const signalLines = wrapLines(analysis.signal || '', layerValueWidth);
+        const riskLines = wrapLines(analysis.riskExposure || '', layerValueWidth);
+        const impactLines = wrapLines(analysis.commercialImpact || '', layerValueWidth);
 
         const textHeight =
           measureWrappedHeight(signalLines.slice(0, 2), LINE_HEIGHT.label) +
@@ -713,32 +735,33 @@ export default function Report({ assessment, onRestart }) {
         drawChip(lblX, lblY, getMaturityLabel(score), colors);
         lblY += 8;
 
-        // Signal / Risk / Impact - wrapped with maxLines=2
+        // Signal / Risk / Impact - wrapped with maxLines=2, aligned columns
         if (analysis) {
           pdf.setFontSize(FONT.label);
+          const valueX = lblX + layerKeyWidth;
 
           // Signal
-          const signalLines = wrapLines(analysis.signal || '', labelAreaWidth - 14);
+          const signalLines = wrapLines(analysis.signal || '', layerValueWidth);
           pdf.setTextColor(100, 116, 139);
           pdf.text('Signal:', lblX, lblY);
           pdf.setTextColor(71, 85, 105);
-          lblY = drawWrappedText(signalLines, lblX + 13, lblY, LINE_HEIGHT.label, 2);
+          lblY = drawWrappedText(signalLines, valueX, lblY, LINE_HEIGHT.label, 2);
           lblY += 1;
 
           // Risk
-          const riskLines = wrapLines(analysis.riskExposure || '', labelAreaWidth - 12);
+          const riskLines = wrapLines(analysis.riskExposure || '', layerValueWidth);
           pdf.setTextColor(220, 38, 38);
           pdf.text('Risk:', lblX, lblY);
           pdf.setTextColor(71, 85, 105);
-          lblY = drawWrappedText(riskLines, lblX + 10, lblY, LINE_HEIGHT.label, 2);
+          lblY = drawWrappedText(riskLines, valueX, lblY, LINE_HEIGHT.label, 2);
           lblY += 1;
 
           // Impact
-          const impactLines = wrapLines(analysis.commercialImpact || '', labelAreaWidth - 15);
+          const impactLines = wrapLines(analysis.commercialImpact || '', layerValueWidth);
           pdf.setTextColor(22, 163, 74);
           pdf.text('Impact:', lblX, lblY);
           pdf.setTextColor(71, 85, 105);
-          drawWrappedText(impactLines, lblX + 14, lblY, LINE_HEIGHT.label, 2);
+          drawWrappedText(impactLines, valueX, lblY, LINE_HEIGHT.label, 2);
         }
       });
 
@@ -759,12 +782,17 @@ export default function Report({ assessment, onRestart }) {
 
       const recs = assessment.recommendations.slice(0, 3);
 
+      // Compute consistent key column width for priority cards
+      pdf.setFontSize(FONT.label);
+      const prioKeyWidth = computeKeyWidth(['Action:', 'Risk:', 'Outcome:']);
+      const prioValueWidth = CONTENT_WIDTH - 10 - prioKeyWidth - 2;
+
       // Compute each priority card height based on wrapped content
       const computePriorityHeight = (rec) => {
         pdf.setFontSize(FONT.label);
-        const actionLines = wrapLines(rec.strategicAction || rec.description || '', CONTENT_WIDTH - 20);
-        const riskLines = wrapLines(rec.riskOfInaction || '', CONTENT_WIDTH - 20);
-        const outcomeLines = wrapLines(rec.expectedOutcome || rec.impact || '', CONTENT_WIDTH - 20);
+        const actionLines = wrapLines(rec.strategicAction || rec.description || '', prioValueWidth);
+        const riskLines = wrapLines(rec.riskOfInaction || '', prioValueWidth);
+        const outcomeLines = wrapLines(rec.expectedOutcome || rec.impact || '', prioValueWidth);
 
         const actionH = measureWrappedHeight(actionLines.slice(0, 3), LINE_HEIGHT.label);
         const riskH = measureWrappedHeight(riskLines.slice(0, 2), LINE_HEIGHT.label);
@@ -794,29 +822,33 @@ export default function Report({ assessment, onRestart }) {
         pdf.text(titleLines[0] || '', MARGIN.left + 14, iy + 1);
         iy += 7;
 
-        // Action - wrapped
+        // Action / Risk / Outcome - wrapped with aligned columns
         pdf.setFontSize(FONT.label);
+        const keyX = MARGIN.left + 5;
+        const valueX = keyX + prioKeyWidth;
+
+        // Action
         pdf.setTextColor(100, 116, 139);
-        pdf.text('Action:', MARGIN.left + 5, iy);
+        pdf.text('Action:', keyX, iy);
         pdf.setTextColor(51, 65, 85);
-        const actionLines = wrapLines(rec.strategicAction || rec.description || '', CONTENT_WIDTH - 30);
-        iy = drawWrappedText(actionLines, MARGIN.left + 18, iy, LINE_HEIGHT.label, 3);
+        const actionLines = wrapLines(rec.strategicAction || rec.description || '', prioValueWidth);
+        iy = drawWrappedText(actionLines, valueX, iy, LINE_HEIGHT.label, 3);
         iy += 2;
 
-        // Risk - wrapped
+        // Risk
         pdf.setTextColor(220, 38, 38);
-        pdf.text('Risk:', MARGIN.left + 5, iy);
+        pdf.text('Risk:', keyX, iy);
         pdf.setTextColor(71, 85, 105);
-        const riskLines = wrapLines(rec.riskOfInaction || '', CONTENT_WIDTH - 30);
-        iy = drawWrappedText(riskLines, MARGIN.left + 15, iy, LINE_HEIGHT.label, 2);
+        const riskLines = wrapLines(rec.riskOfInaction || '', prioValueWidth);
+        iy = drawWrappedText(riskLines, valueX, iy, LINE_HEIGHT.label, 2);
         iy += 2;
 
-        // Outcome - wrapped
+        // Outcome
         pdf.setTextColor(22, 163, 74);
-        pdf.text('Outcome:', MARGIN.left + 5, iy);
+        pdf.text('Outcome:', keyX, iy);
         pdf.setTextColor(71, 85, 105);
-        const outcomeLines = wrapLines(rec.expectedOutcome || rec.impact || '', CONTENT_WIDTH - 30);
-        drawWrappedText(outcomeLines, MARGIN.left + 20, iy, LINE_HEIGHT.label, 2);
+        const outcomeLines = wrapLines(rec.expectedOutcome || rec.impact || '', prioValueWidth);
+        drawWrappedText(outcomeLines, valueX, iy, LINE_HEIGHT.label, 2);
 
         y += cardH + 4;
       });
